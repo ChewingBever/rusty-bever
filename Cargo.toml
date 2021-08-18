@@ -1,0 +1,17 @@
+[package]
+name = "rusty-bever"
+version = "0.1.0"
+authors = ["Jef Roosens <roosensjef@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rocket = "0.5.0-rc.1"
+diesel = { version = "1.4.7", features = ["postgres"] }
+diesel_migrations = "1.4.0"
+
+[dependencies.rocket_sync_db_pools]
+version = "0.1.0-rc.1"
+default_features = false
+features = ["diesel_postgres_pool"]
