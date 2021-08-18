@@ -4,6 +4,14 @@ version = "0.1.0"
 authors = ["Jef Roosens <roosensjef@gmail.com>"]
 edition = "2018"
 
+[lib]
+name = "rb"
+path = "src/rb/lib.rs"
+
+[[bin]]
+name = "rbs"
+path = "src/rbs/main.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

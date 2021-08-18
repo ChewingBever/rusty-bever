@@ -1,0 +1,44 @@
+<html>
+    <body>
+
+        <ul id="nav-bar">
+            <li class="nav-bar-item"><a href="/home">Home</a></li>
+            <li class="nav-bar-item"><a href="/blog">Blog</a></li>
+            <li class="nav-bar-item"><a href="/microblog">Microblog</a></li>
+            <li class="nav-bar-item"><a href="/devlogs">Devlogs</a></li>
+        </ul>
+    </body>
+</html>
+
+<style>
+ul#nav-bar {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    width: 200px;
+    background-color: #f1f1f1;
+    border: 1px solid #555;
+}
+
+ul#nav-bar li {
+    text-align: center;
+    display: inline;
+}
+
+li.nav-bar-item a {
+    display: block;
+    color: #000;
+    padding: 8px 16px;
+    text-decoration: none;
+    border: 1px solid #555;
+}
+
+li.nav-bar-item:last-child {
+    border-bottom: none;
+}
+
+li.nav-bar-item a:hover {
+    background-color: #555;
+    color: white;
+}
+</style>
