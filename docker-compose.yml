@@ -1,0 +1,19 @@
+# I just use this compose file to easily start up test databases
+version: '3'
+
+services:
+  db:
+    image: 'postgres:13-alpine'
+    restart: 'always'
+
+    environment:
+      - 'POSTGRES_DB=rb'
+      - 'POSTGRES_USER=rb'
+      - 'POSTGRES_PASSWORD=rb'
+    ports:
+      - '5432:5432'
+    volumes:
+      - 'db-data:/var/lib/postgresql/data'
+
+volumes:
+  db-data:
