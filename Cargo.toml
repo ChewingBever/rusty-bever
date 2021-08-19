@@ -18,6 +18,7 @@ path = "src/rbs/main.rs"
 rocket = "0.5.0-rc.1"
 diesel = { version = "1.4.7", features = ["postgres"] }
 diesel_migrations = "1.4.0"
+openssl = "0.10.36"
 
 [dependencies.rocket_sync_db_pools]
 version = "0.1.0-rc.1"
