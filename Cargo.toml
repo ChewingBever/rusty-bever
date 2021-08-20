@@ -16,18 +16,19 @@ path = "src/rbs/main.rs"
 
 [dependencies]
 # ORM
-diesel = { version = "1.4.7", features = ["postgres"] }
+diesel = { version = "1.4.7", features = ["postgres", "uuidv07"] }
 diesel_migrations = "1.4.0"
 # To properly compile libpq statically
 openssl = "0.10.36"
 # For password hashing & verification
 rust-argon2 = "0.8.3"
 rand = "0.8.4"
+uuid = "0.8.2"
 
 # Backend web framework
 [dependencies.rocket]
 version = "0.5.0-rc.1"
-features = [ "json" ]
+features = ["json"]
 
 # Used to (de)serialize JSON
 [dependencies.serde]

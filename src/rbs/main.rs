@@ -2,8 +2,10 @@
 // compilation succeeds
 extern crate openssl;
 
-#[macro_use] extern crate rocket;
-#[macro_use] extern crate diesel_migrations;
+#[macro_use]
+extern crate rocket;
+#[macro_use]
+extern crate diesel_migrations;
 
 use rocket::{fairing::AdHoc, Build, Rocket};
 use rocket_sync_db_pools::{database, diesel};
