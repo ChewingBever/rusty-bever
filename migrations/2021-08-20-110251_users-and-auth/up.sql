@@ -6,7 +6,7 @@ CREATE TABLE users (
     -- Hashed + salted representation of the username
     password text NOT NULL,
     -- Wether the user is currently blocked
-    blocked boolean DEFAULT false
+    blocked boolean NOT NULL DEFAULT false
 );
 
 -- Permissions that a user can have
@@ -14,12 +14,22 @@ CREATE TABLE permissions (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
 
     user_id uuid REFERENCES users (id) NOT NULL,
-    name varchar NOT NULL,
+    name varchar(64) NOT NULL,
 
     UNIQUE (user_id, name)
 );
 
--- TODO security reports table (e.g. when a user is blocked)
+-- Security reports (e.g. when a user is blocked)
+CREATE TABLE security_reports (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+
+    -- When the report was made
+    report_time timestamp NOT NULL DEFAULT now(),
+    -- What type of report it is
+    report_type varchar(64) NOT NULL,
+    -- Contents of the report
+    content TEXT NOT NULL
+);
 
 -- Stores refresh tokens
 CREATE TABLE refresh_tokens (

@@ -8,6 +8,8 @@ extern crate openssl;
 use rocket::{fairing::AdHoc, Build, Rocket};
 use rocket_sync_db_pools::{database, diesel};
 
+mod auth;
+
 embed_migrations!();
 
 #[database("postgres_rb")]
