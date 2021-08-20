@@ -15,11 +15,18 @@ path = "src/rbs/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Backend web framework
 rocket = "0.5.0-rc.1"
+# ORM
 diesel = { version = "1.4.7", features = ["postgres"] }
 diesel_migrations = "1.4.0"
+# To properly compile libpq statically
 openssl = "0.10.36"
+# For password hashing & verification
+rust-argon2 = "0.8.3"
+rand = "0.8.4"
 
+# Used to provide Rocket routes with database connections
 [dependencies.rocket_sync_db_pools]
 version = "0.1.0-rc.1"
 default_features = false
