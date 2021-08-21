@@ -27,4 +27,5 @@ pub struct NewUser {
 pub struct NewRefreshToken {
     pub token: Vec<u8>,
     pub user_id: Uuid,
+    pub expires_at: chrono::NaiveDateTime
 }

@@ -17,6 +17,14 @@ use std::collections::HashMap;
 const JWT_EXP_SECONDS: i64 = 900;
 /// Amount of bytes the refresh tokens should consist of
 const REFRESH_TOKEN_N_BYTES: usize = 64;
+/// Expire time for refresh tokens; here: one week
+const REFRESH_TOKEN_EXP_SECONDS: i64 = 36288000;
+
+fn log<T>(message: &str, o: T) -> T {
+    println!("{}", message);
+
+    o
+}
 
 pub fn verify_user(conn: &PgConnection, username: &str, password: &str) -> crate::Result<User> {
     // TODO handle non-"NotFound" Diesel errors accordingely
@@ -46,7 +54,9 @@ pub struct JWTResponse {
 pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWTResponse> {
     // TODO actually use proper secret here
     let key: Hmac<Sha256> =
-        Hmac::new_from_slice(b"some-secret").map_err(|_| RBError::JWTCreationError)?;
+        Hmac::new_from_slice(b"some-secret").map_err(|_| log("Failed to create key", RBError::JWTCreationError))?;
+
+    let current_time = Utc::now();
 
     // Create the claims
     let mut claims = HashMap::new();
@@ -55,23 +65,27 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWT
     claims.insert("admin", user.admin.to_string());
     claims.insert(
         "exp",
-        (Utc::now().timestamp() + JWT_EXP_SECONDS).to_string(),
+        (current_time.timestamp() + JWT_EXP_SECONDS).to_string(),
     );
 
     // Sign the claims into a new token
     let token = claims
         .sign_with_key(&key)
-        .map_err(|_| RBError::JWTCreationError)?;
+        .map_err(|_| log("Failed to sign token", RBError::JWTCreationError))?;
 
     // Generate a random refresh token
     let mut refresh_token = [0u8; REFRESH_TOKEN_N_BYTES];
     thread_rng().fill(&mut refresh_token[..]);
 
+    let refresh_expire = (current_time + chrono::Duration::seconds(REFRESH_TOKEN_EXP_SECONDS)).naive_utc();
+
     // Store refresh token in database
+    // TODO add expires_at here (it's what's causing the errors)
     insert_into(refresh_tokens::refresh_tokens)
         .values(NewRefreshToken {
             token: refresh_token.to_vec(),
             user_id: user.id,
+            expires_at: refresh_expire
         })
         .execute(conn)
         .map_err(|_| RBError::JWTCreationError)?;
@@ -94,7 +108,6 @@ pub fn hash_password(password: &str) -> crate::Result<String> {
 
 pub fn create_admin_user(conn: &PgConnection, username: &str, password: &str) -> crate::Result<bool> {
     let pass_hashed = hash_password(password)?;
-    println!("{}", pass_hashed);
     let new_user = NewUser {
             username: username.to_string(),
             password: pass_hashed,
@@ -103,9 +116,9 @@ pub fn create_admin_user(conn: &PgConnection, username: &str, password: &str) ->
 
     insert_into(users::users)
         .values(&new_user)
-        // .on_conflict((users::username, users::password, users::admin))
-        // .do_update()
-        // .set(&new_user)
+        .on_conflict(users::username)
+        .do_update()
+        .set(&new_user)
         .execute(conn).map_err(|_| RBError::AdminCreationError)?;
 
     Ok(true)

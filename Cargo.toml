@@ -16,7 +16,7 @@ path = "src/rbs/main.rs"
 
 [dependencies]
 # ORM
-diesel = { version = "1.4.7", features = ["postgres", "uuidv07"] }
+diesel = { version = "1.4.7", features = ["postgres", "uuidv07", "chrono"] }
 diesel_migrations = "1.4.0"
 # To properly compile libpq statically
 openssl = "0.10.36"
@@ -27,7 +27,7 @@ uuid = { version = "0.8.2", features = ["serde"] }
 jwt = "0.14.0"
 hmac = "*"
 sha2 = "*"
-chrono = "0.4.19"
+chrono = { version = "*", features = [ "serde" ] }
 base64 = "0.13.0"
 
 # Backend web framework
