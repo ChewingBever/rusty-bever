@@ -1,11 +1,14 @@
 use diesel::Queryable;
 use uuid::Uuid;
+use serde::Serialize;
 
-#[derive(Queryable)]
+#[derive(Queryable, Serialize)]
 pub struct User {
-    id: Uuid,
-    username: String,
+    pub id: Uuid,
+    pub username: String,
+    #[serde(skip_serializing)]
     pub password: String,
+    #[serde(skip_serializing)]
     blocked: bool,
     admin: bool,
 }

@@ -23,7 +23,11 @@ openssl = "0.10.36"
 # For password hashing & verification
 rust-argon2 = "0.8.3"
 rand = "0.8.4"
-uuid = "0.8.2"
+uuid = { version = "0.8.2", features = ["serde"] }
+jwt = "0.14.0"
+hmac = "*"
+sha2 = "*"
+chrono = "0.4.19"
 
 # Backend web framework
 [dependencies.rocket]
