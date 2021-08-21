@@ -1,7 +1,7 @@
-use diesel::{Queryable, Insertable};
-use uuid::Uuid;
+use crate::schema::{refresh_tokens, users};
+use diesel::{Insertable, Queryable, AsChangeset};
 use serde::Serialize;
-use crate::schema::refresh_tokens;
+use uuid::Uuid;
 
 #[derive(Queryable, Serialize)]
 pub struct User {
@@ -10,14 +10,21 @@ pub struct User {
     #[serde(skip_serializing)]
     pub password: String,
     #[serde(skip_serializing)]
-    blocked: bool,
+    pub blocked: bool,
     pub admin: bool,
 }
 
+#[derive(Insertable, AsChangeset)]
+#[table_name = "users"]
+pub struct NewUser {
+    pub username: String,
+    pub password: String,
+    pub admin: bool,
+}
 
 #[derive(Insertable)]
 #[table_name = "refresh_tokens"]
 pub struct NewRefreshToken {
     pub token: Vec<u8>,
-    pub user_id: Uuid
+    pub user_id: Uuid,
 }

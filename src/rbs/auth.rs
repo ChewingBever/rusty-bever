@@ -1,5 +1,5 @@
 use crate::RbDbConn;
-use rb::auth::{verify_user, JWTResponse, generate_jwt_token};
+use rb::auth::{generate_jwt_token, verify_user, JWTResponse};
 use rocket::serde::json::Json;
 use serde::Deserialize;
 
