@@ -1,5 +1,5 @@
 use crate::errors::RBError;
-use crate::models::{NewRefreshToken, User, NewUser};
+use crate::models::{NewRefreshToken, NewUser, User};
 use crate::schema::refresh_tokens::dsl as refresh_tokens;
 use crate::schema::users::dsl as users;
 use argon2::verify_encoded;
@@ -9,7 +9,7 @@ use diesel::{insert_into, PgConnection};
 use hmac::{Hmac, NewMac};
 use jwt::SignWithKey;
 use rand::{thread_rng, Rng};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use std::collections::HashMap;
 
@@ -51,22 +51,36 @@ pub struct JWTResponse {
     refresh_token: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Claims {
+    pub id: uuid::Uuid,
+    pub username: String,
+    pub admin: bool,
+    pub exp: i64,
+}
+
 pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWTResponse> {
-    // TODO actually use proper secret here
-    let key: Hmac<Sha256> =
-        Hmac::new_from_slice(b"some-secret").map_err(|_| log("Failed to create key", RBError::JWTCreationError))?;
+    let secret = std::env::var("JWT_KEY").map_err(|_| RBError::MissingJWTKey)?;
+    let key: Hmac<Sha256> = Hmac::new_from_slice(secret.as_bytes())
+        .map_err(|_| log("Failed to create key", RBError::JWTCreationError))?;
 
     let current_time = Utc::now();
 
     // Create the claims
-    let mut claims = HashMap::new();
-    claims.insert("id", user.id.to_string());
-    claims.insert("username", user.username.clone());
-    claims.insert("admin", user.admin.to_string());
-    claims.insert(
-        "exp",
-        (current_time.timestamp() + JWT_EXP_SECONDS).to_string(),
-    );
+    let claims = Claims {
+        id: user.id,
+        username: user.username.clone(),
+        admin: user.admin,
+        exp: current_time.timestamp() + JWT_EXP_SECONDS,
+    };
+    // let mut claims = HashMap::new();
+    // claims.insert("id", user.id.to_string());
+    // claims.insert("username", user.username.clone());
+    // claims.insert("admin", user.admin.to_string());
+    // claims.insert(
+    //     "exp",
+    //     (current_time.timestamp() + JWT_EXP_SECONDS).to_string(),
+    // );
 
     // Sign the claims into a new token
     let token = claims
@@ -77,7 +91,8 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWT
     let mut refresh_token = [0u8; REFRESH_TOKEN_N_BYTES];
     thread_rng().fill(&mut refresh_token[..]);
 
-    let refresh_expire = (current_time + chrono::Duration::seconds(REFRESH_TOKEN_EXP_SECONDS)).naive_utc();
+    let refresh_expire =
+        (current_time + chrono::Duration::seconds(REFRESH_TOKEN_EXP_SECONDS)).naive_utc();
 
     // Store refresh token in database
     // TODO add expires_at here (it's what's causing the errors)
@@ -85,7 +100,7 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWT
         .values(NewRefreshToken {
             token: refresh_token.to_vec(),
             user_id: user.id,
-            expires_at: refresh_expire
+            expires_at: refresh_expire,
         })
         .execute(conn)
         .map_err(|_| RBError::JWTCreationError)?;
@@ -106,20 +121,25 @@ pub fn hash_password(password: &str) -> crate::Result<String> {
     argon2::hash_encoded(password.as_bytes(), &salt, &config).map_err(|_| RBError::PWSaltError)
 }
 
-pub fn create_admin_user(conn: &PgConnection, username: &str, password: &str) -> crate::Result<bool> {
+pub fn create_admin_user(
+    conn: &PgConnection,
+    username: &str,
+    password: &str,
+) -> crate::Result<bool> {
     let pass_hashed = hash_password(password)?;
     let new_user = NewUser {
-            username: username.to_string(),
-            password: pass_hashed,
-            admin: true,
-        };
+        username: username.to_string(),
+        password: pass_hashed,
+        admin: true,
+    };
 
     insert_into(users::users)
         .values(&new_user)
         .on_conflict(users::username)
         .do_update()
         .set(&new_user)
-        .execute(conn).map_err(|_| RBError::AdminCreationError)?;
+        .execute(conn)
+        .map_err(|_| RBError::AdminCreationError)?;
 
     Ok(true)
 }

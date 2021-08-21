@@ -2,10 +2,12 @@ use crate::RbDbConn;
 use rb::auth::{generate_jwt_token, verify_user, JWTResponse};
 use rocket::serde::json::Json;
 use serde::Deserialize;
+use crate::guards::User;
 
 pub(crate) fn routes() -> Vec<rocket::Route> {
-    routes![login]
+    routes![login, me]
 }
+
 
 #[derive(Deserialize)]
 struct Credentials {
@@ -25,6 +27,11 @@ async fn login(conn: RbDbConn, credentials: Json<Credentials>) -> rb::Result<Jso
         .await?;
 
     Ok(Json(conn.run(move |c| generate_jwt_token(c, &user)).await?))
+}
+
+#[get("/me")]
+async fn me(claims: User) -> String {
+    String::from("You are logged in!")
 }
 
 // /refresh

@@ -11,6 +11,7 @@ use rocket::{fairing::AdHoc, Build, Rocket};
 use rocket_sync_db_pools::{database, diesel};
 
 mod auth;
+pub(crate) mod guards;
 
 embed_migrations!();
 
@@ -35,7 +36,11 @@ async fn create_admin_user(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocke
     let conn = RbDbConn::get_one(&rocket)
         .await
         .expect("database connection");
-    conn.run(move |c| rb::auth::create_admin_user(c, &admin_user, &admin_password).expect("failed to create admin user")).await;
+    conn.run(move |c| {
+        rb::auth::create_admin_user(c, &admin_user, &admin_password)
+            .expect("failed to create admin user")
+    })
+    .await;
 
     Ok(rocket)
 }
@@ -48,9 +53,6 @@ fn rocket() -> _ {
             "Run database migrations",
             run_db_migrations,
         ))
-        .attach(AdHoc::try_on_ignite(
-                "Create admin user",
-                create_admin_user
-        ))
+        .attach(AdHoc::try_on_ignite("Create admin user", create_admin_user))
         .mount("/api/auth", auth::routes())
 }

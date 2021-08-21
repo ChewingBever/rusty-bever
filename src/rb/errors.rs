@@ -16,6 +16,8 @@ pub enum RBError {
     JWTTokenExpired,
     /// Umbrella error for when something goes wrong whilst creating a JWT token pair
     JWTCreationError,
+    JWTError,
+    MissingJWTKey,
     PWSaltError,
     AdminCreationError,
 }
@@ -28,8 +30,10 @@ impl<'r> Responder<'r, 'static> for RBError {
             RBError::InvalidPassword => (Status::Unauthorized, "Invalid password"),
             RBError::Unauthorized => (Status::Unauthorized, "Unauthorized"),
             RBError::JWTTokenExpired => (Status::Unauthorized, "Token expired"),
-            RBError::JWTCreationError => (Status::InternalServerError, "Failed to create tokens."),
-            _ => (Status::InternalServerError, "Internal server error")
+            RBError::JWTCreationError | RBError::MissingJWTKey => {
+                (Status::InternalServerError, "Failed to create tokens.")
+            }
+            _ => (Status::InternalServerError, "Internal server error"),
         };
 
         let mut res = Response::new();

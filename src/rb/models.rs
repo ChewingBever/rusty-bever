@@ -1,5 +1,5 @@
 use crate::schema::{refresh_tokens, users};
-use diesel::{Insertable, Queryable, AsChangeset};
+use diesel::{AsChangeset, Insertable, Queryable};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -27,5 +27,5 @@ pub struct NewUser {
 pub struct NewRefreshToken {
     pub token: Vec<u8>,
     pub user_id: Uuid,
-    pub expires_at: chrono::NaiveDateTime
+    pub expires_at: chrono::NaiveDateTime,
 }
