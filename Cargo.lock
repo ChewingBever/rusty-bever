@@ -1179,6 +1179,7 @@ checksum = "61b3909d758bb75c79f23d4736fac9433868679d3ad2ea7a61e3c25cfda9a088"
 name = "rusty-bever"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "chrono",
  "diesel",
  "diesel_migrations",

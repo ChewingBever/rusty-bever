@@ -11,19 +11,22 @@ pub enum RBError {
     /// When a non-admin user tries to use an admin endpoint
     Unauthorized,
     /// When an expired JWT token is used for auth.
-    JWTTokenExpired
+    JWTTokenExpired,
+    /// Umbrella error for when something goes wrong whilst creating a JWT token pair
+    JWTCreationError
 }
 
 impl<'r> Responder<'r, 'static> for RBError {
     fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
         let (status, message): (Status, &str) = match self {
-            UnknownUser => (Status::NotFound, "Unknown user"),
-            InvalidPassword => (Status::Unauthorized, "Invalid password"),
-            Unauthorized => (Status::Unauthorized, "Unauthorized"),
-            JWTTokenExpired => (Status::Unauthorized, "Token expired"),
+            RBError::UnknownUser => (Status::NotFound, "Unknown user"),
+            RBError::InvalidPassword => (Status::Unauthorized, "Invalid password"),
+            RBError::Unauthorized => (Status::Unauthorized, "Unauthorized"),
+            RBError::JWTTokenExpired => (Status::Unauthorized, "Token expired"),
+            RBError::JWTCreationError => (Status::InternalServerError, "Failed to create tokens."),
         };
 
-        let res = Response::new();
+        let mut res = Response::new();
         res.set_status(status);
         res.set_sized_body(message.len(), io::Cursor::new(message));
 
