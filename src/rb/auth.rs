@@ -18,7 +18,7 @@ const JWT_EXP_SECONDS: i64 = 900;
 /// Amount of bytes the refresh tokens should consist of
 const REFRESH_TOKEN_N_BYTES: usize = 64;
 /// Expire time for refresh tokens; here: one week
-const REFRESH_TOKEN_EXP_SECONDS: i64 = 36288000;
+const REFRESH_TOKEN_EXP_SECONDS: i64 = 604800;
 
 fn log<T>(message: &str, o: T) -> T {
     println!("{}", message);

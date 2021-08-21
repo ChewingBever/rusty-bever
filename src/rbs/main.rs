@@ -1,5 +1,5 @@
 // This needs to be explicitely included before diesel is imported to make sure
-// compilation succeeds
+// compilation succeeds in the release Docker image.
 extern crate openssl;
 
 #[macro_use]
@@ -29,16 +29,9 @@ async fn run_db_migrations(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocke
 }
 
 async fn create_admin_user(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocket<Build>> {
-    // In debug mode, the admin user is just a test user
-    let (admin_user, admin_password): (String, String);
+    let admin_user = std::env::var("ADMIN_USER").unwrap_or(String::from("admin"));
+    let admin_password = std::env::var("ADMIN_PASSWORD").unwrap_or(String::from("password"));
 
-    // if rocket.config().profile == "debug" {
-        admin_user = String::from("test");
-        admin_password = String::from("test");
-    // }else{
-    //     admin_user = std::env::var("ADMIN_USER").expect("no admin user provided");
-    //     admin_password = std::env::var("ADMIN_PASSWORD").expect("no admin password provided");
-    // }
     let conn = RbDbConn::get_one(&rocket)
         .await
         .expect("database connection");
@@ -59,5 +52,5 @@ fn rocket() -> _ {
                 "Create admin user",
                 create_admin_user
         ))
-        .mount("/auth", auth::routes())
+        .mount("/api/auth", auth::routes())
 }
