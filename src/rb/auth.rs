@@ -1,4 +1,4 @@
-use crate::errors::AuthError;
+use crate::errors::RBError;
 use crate::models::User;
 use crate::schema::users::dsl as users;
 use argon2::verify_encoded;
@@ -15,19 +15,16 @@ const JWT_EXP_SECONDS: i64 = 900;
 /// Amount of bytes the refresh tokens should consist of
 const REFRESH_TOKEN_N_BYTES: u32 = 64;
 
-pub fn verify_user(conn: &PgConnection, username: &str, password: &str) -> Result<User, AuthError> {
+pub fn verify_user(conn: &PgConnection, username: &str, password: &str) -> crate::Result<User> {
     // TODO handle non-"NotFound" Diesel errors accordingely
-    let user = match users::users
+    let user = users::users
         .filter(users::username.eq(username))
         .first::<User>(conn)
-    {
-        Err(_) => return Err(AuthError::UnknownUser),
-        Ok(user) => user,
-    };
+        .map_err(|_| RBError::UnknownUser)?;
 
     match verify_encoded(user.password.as_str(), password.as_bytes()) {
         Ok(true) => Ok(user),
-        _ => Err(AuthError::InvalidPassword),
+        _ => Err(RBError::InvalidPassword),
     }
 }
 
