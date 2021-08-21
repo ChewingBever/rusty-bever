@@ -3,6 +3,10 @@ use rb::auth::{verify_user, JWTResponse, generate_jwt_token};
 use rocket::serde::json::Json;
 use serde::Deserialize;
 
+pub(crate) fn routes() -> Vec<rocket::Route> {
+    routes![login]
+}
+
 #[derive(Deserialize)]
 struct Credentials {
     username: String,

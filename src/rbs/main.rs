@@ -36,4 +36,5 @@ fn rocket() -> _ {
             "Run database migrations",
             run_db_migrations,
         ))
+        .mount("/auth", auth::routes())
 }
