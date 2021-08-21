@@ -20,6 +20,7 @@ pub enum RBError {
     MissingJWTKey,
     PWSaltError,
     AdminCreationError,
+    TokenExpired,
 }
 
 impl<'r> Responder<'r, 'static> for RBError {

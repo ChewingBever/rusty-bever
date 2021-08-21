@@ -47,8 +47,8 @@ pub struct Claims {
 
 pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWTResponse> {
     let secret = std::env::var("JWT_KEY").map_err(|_| RBError::MissingJWTKey)?;
-    let key: Hmac<Sha256> = Hmac::new_from_slice(secret.as_bytes())
-        .map_err(|_| RBError::JWTCreationError)?;
+    let key: Hmac<Sha256> =
+        Hmac::new_from_slice(secret.as_bytes()).map_err(|_| RBError::JWTCreationError)?;
 
     let current_time = Utc::now();
 
