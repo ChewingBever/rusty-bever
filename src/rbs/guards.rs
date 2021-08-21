@@ -8,10 +8,10 @@ use jwt::VerifyWithKey;
 use rb::auth::Claims;
 use sha2::Sha256;
 
-pub struct User(Claims);
+pub struct JWT(String);
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for User {
+impl<'r> FromRequest<'r> for JWT {
     type Error = rb::errors::RBError;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -28,8 +28,21 @@ impl<'r> FromRequest<'r> for User {
         // Extract the jwt token from the header
         let jwt_token = match header.get(7..) {
             Some(token) => token,
-            None => return Outcome::Failure((Status::Unauthorized, Self::Error::JWTError)),
+            None => return Outcome::Forward(()),
         };
+
+        Outcome::Success(Self(jwt_token.to_string()))
+    }
+}
+
+pub struct User(Claims);
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for User {
+    type Error = rb::errors::RBError;
+
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        let jwt_token = try_outcome!(req.guard::<JWT>().await).0;
 
         // Get secret & key
         let secret = match std::env::var("JWT_KEY") {

@@ -10,4 +10,4 @@ limits = { forms = 32768 }
 postgres_rb = { url = "postgres://rb:rb@localhost:5432/rb" }
 
 [release.databases]
-postgres_rb = { url = "postgres://rb:rb@db:5432/rb" }
+postgres_rb = { url = "postgres://rb:rb@localhost:5432/rb" }

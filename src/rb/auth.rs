@@ -11,20 +11,6 @@ use jwt::SignWithKey;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
-use std::collections::HashMap;
-
-/// Expire time for the JWT tokens in seconds.
-const JWT_EXP_SECONDS: i64 = 900;
-/// Amount of bytes the refresh tokens should consist of
-const REFRESH_TOKEN_N_BYTES: usize = 64;
-/// Expire time for refresh tokens; here: one week
-const REFRESH_TOKEN_EXP_SECONDS: i64 = 604800;
-
-fn log<T>(message: &str, o: T) -> T {
-    println!("{}", message);
-
-    o
-}
 
 pub fn verify_user(conn: &PgConnection, username: &str, password: &str) -> crate::Result<User> {
     // TODO handle non-"NotFound" Diesel errors accordingely
@@ -62,7 +48,7 @@ pub struct Claims {
 pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWTResponse> {
     let secret = std::env::var("JWT_KEY").map_err(|_| RBError::MissingJWTKey)?;
     let key: Hmac<Sha256> = Hmac::new_from_slice(secret.as_bytes())
-        .map_err(|_| log("Failed to create key", RBError::JWTCreationError))?;
+        .map_err(|_| RBError::JWTCreationError)?;
 
     let current_time = Utc::now();
 
@@ -71,28 +57,20 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWT
         id: user.id,
         username: user.username.clone(),
         admin: user.admin,
-        exp: current_time.timestamp() + JWT_EXP_SECONDS,
+        exp: current_time.timestamp() + crate::JWT_EXP_SECONDS,
     };
-    // let mut claims = HashMap::new();
-    // claims.insert("id", user.id.to_string());
-    // claims.insert("username", user.username.clone());
-    // claims.insert("admin", user.admin.to_string());
-    // claims.insert(
-    //     "exp",
-    //     (current_time.timestamp() + JWT_EXP_SECONDS).to_string(),
-    // );
 
     // Sign the claims into a new token
     let token = claims
         .sign_with_key(&key)
-        .map_err(|_| log("Failed to sign token", RBError::JWTCreationError))?;
+        .map_err(|_| RBError::JWTCreationError)?;
 
     // Generate a random refresh token
-    let mut refresh_token = [0u8; REFRESH_TOKEN_N_BYTES];
+    let mut refresh_token = [0u8; crate::REFRESH_TOKEN_N_BYTES];
     thread_rng().fill(&mut refresh_token[..]);
 
     let refresh_expire =
-        (current_time + chrono::Duration::seconds(REFRESH_TOKEN_EXP_SECONDS)).naive_utc();
+        (current_time + chrono::Duration::seconds(crate::REFRESH_TOKEN_EXP_SECONDS)).naive_utc();
 
     // Store refresh token in database
     // TODO add expires_at here (it's what's causing the errors)
