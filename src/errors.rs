@@ -1,10 +1,14 @@
-use rocket::http::Status;
-use rocket::request::Request;
-use rocket::response::{self, Responder, Response};
 use std::io;
 
+use rocket::{
+    http::Status,
+    request::Request,
+    response::{self, Responder, Response},
+};
+
 #[derive(Debug)]
-pub enum RBError {
+pub enum RBError
+{
     /// When the login requests an unknown user
     UnknownUser,
     BlockedUser,
@@ -26,8 +30,10 @@ pub enum RBError {
     DBError,
 }
 
-impl<'r> Responder<'r, 'static> for RBError {
-    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
+impl<'r> Responder<'r, 'static> for RBError
+{
+    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static>
+    {
         let (status, message): (Status, &str) = match self {
             RBError::UnknownUser => (Status::NotFound, "Unknown user"),
             RBError::BlockedUser => (Status::Unauthorized, "This user is blocked"),

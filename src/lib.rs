@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate diesel;
 
-pub mod db;
 pub mod auth;
+pub mod db;
 pub mod errors;
 pub(crate) mod schema;
 

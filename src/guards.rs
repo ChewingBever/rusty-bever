@@ -12,10 +12,12 @@ use sha2::Sha256;
 pub struct Bearer(String);
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for Bearer {
+impl<'r> FromRequest<'r> for Bearer
+{
     type Error = rb::errors::RBError;
 
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
+    {
         // If the header isn't present, just forward to the next route
         let header = match req.headers().get_one("Authorization") {
             None => return Outcome::Forward(()),
@@ -40,10 +42,12 @@ impl<'r> FromRequest<'r> for Bearer {
 pub struct JWT(Claims);
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for JWT {
+impl<'r> FromRequest<'r> for JWT
+{
     type Error = rb::errors::RBError;
 
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
+    {
         let bearer = try_outcome!(req.guard::<Bearer>().await).0;
 
         // Get secret & key
@@ -73,10 +77,12 @@ impl<'r> FromRequest<'r> for JWT {
 pub struct User(Claims);
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for User {
+impl<'r> FromRequest<'r> for User
+{
     type Error = rb::errors::RBError;
 
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
+    {
         let claims = try_outcome!(req.guard::<JWT>().await).0;
 
         // Verify key hasn't yet expired
@@ -92,10 +98,12 @@ impl<'r> FromRequest<'r> for User {
 pub struct Admin(Claims);
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for Admin {
+impl<'r> FromRequest<'r> for Admin
+{
     type Error = rb::errors::RBError;
 
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
+    {
         let user = try_outcome!(req.guard::<User>().await);
         if user.0.admin {
             Outcome::Success(Self(user.0))

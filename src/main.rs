@@ -18,7 +18,8 @@ embed_migrations!();
 #[database("postgres_rb")]
 pub struct RbDbConn(diesel::PgConnection);
 
-async fn run_db_migrations(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocket<Build>> {
+async fn run_db_migrations(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocket<Build>>
+{
     let conn = RbDbConn::get_one(&rocket)
         .await
         .expect("database connection");
@@ -29,7 +30,8 @@ async fn run_db_migrations(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocke
     .await
 }
 
-async fn create_admin_user(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocket<Build>> {
+async fn create_admin_user(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocket<Build>>
+{
     let admin_user = std::env::var("ADMIN_USER").unwrap_or(String::from("admin"));
     let admin_password = std::env::var("ADMIN_PASSWORD").unwrap_or(String::from("password"));
 
@@ -46,7 +48,8 @@ async fn create_admin_user(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocke
 }
 
 #[launch]
-fn rocket() -> _ {
+fn rocket() -> _
+{
     rocket::build()
         .attach(RbDbConn::fairing())
         .attach(AdHoc::try_on_ignite(

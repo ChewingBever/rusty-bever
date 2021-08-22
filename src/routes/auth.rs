@@ -1,26 +1,30 @@
-use crate::guards::User;
-use crate::RbDbConn;
 use rb::auth::{generate_jwt_token, verify_user, JWTResponse};
 use rocket::serde::json::Json;
 use serde::Deserialize;
 
-pub(crate) fn routes() -> Vec<rocket::Route> {
+use crate::{guards::User, RbDbConn};
+
+pub(crate) fn routes() -> Vec<rocket::Route>
+{
     routes![login, already_logged_in, refresh_token]
 }
 
 #[derive(Deserialize)]
-struct Credentials {
+struct Credentials
+{
     username: String,
     password: String,
 }
 
 #[post("/login")]
-async fn already_logged_in(_user: User) -> String {
+async fn already_logged_in(_user: User) -> String
+{
     String::from("You're already logged in!")
 }
 
 #[post("/login", data = "<credentials>", rank = 2)]
-async fn login(conn: RbDbConn, credentials: Json<Credentials>) -> rb::Result<Json<JWTResponse>> {
+async fn login(conn: RbDbConn, credentials: Json<Credentials>) -> rb::Result<Json<JWTResponse>>
+{
     let credentials = credentials.into_inner();
 
     // Get the user, if credentials are valid
@@ -33,7 +37,8 @@ async fn login(conn: RbDbConn, credentials: Json<Credentials>) -> rb::Result<Jso
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RefreshTokenRequest {
+struct RefreshTokenRequest
+{
     pub refresh_token: String,
 }
 
@@ -41,7 +46,8 @@ struct RefreshTokenRequest {
 async fn refresh_token(
     conn: RbDbConn,
     refresh_token_request: Json<RefreshTokenRequest>,
-) -> rb::Result<Json<JWTResponse>> {
+) -> rb::Result<Json<JWTResponse>>
+{
     let refresh_token = refresh_token_request.into_inner().refresh_token;
 
     Ok(Json(
