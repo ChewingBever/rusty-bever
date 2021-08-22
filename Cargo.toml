@@ -15,6 +15,12 @@ path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Backend web framework
+rocket = { version = "0.5.0-rc.1", features = [ "json" ] }
+# Used to provide Rocket routes with database connections
+rocket_sync_db_pools = { version = "0.1.0-rc.1", default_features = false, features = [ "diesel_postgres_pool" ] }
+# Used to (de)serialize JSON
+serde = { version = "1.0.127", features = [ "derive" ] }
 # ORM
 diesel = { version = "1.4.7", features = ["postgres", "uuidv07", "chrono"] }
 diesel_migrations = "1.4.0"
@@ -24,24 +30,15 @@ openssl = "0.10.36"
 rust-argon2 = "0.8.3"
 rand = "0.8.4"
 uuid = { version = "0.8.2", features = ["serde"] }
+# Authentification
 jwt = "0.14.0"
 hmac = "*"
 sha2 = "*"
+# Timestamps for JWT tokens
 chrono = { version = "*", features = [ "serde" ] }
+# Encoding of refresh tokens
 base64 = "0.13.0"
 
-# Backend web framework
-[dependencies.rocket]
-version = "0.5.0-rc.1"
-features = ["json"]
-
-# Used to (de)serialize JSON
-[dependencies.serde]
-version = "1.0.127"
-features = ["derive"]
-
-# Used to provide Rocket routes with database connections
-[dependencies.rocket_sync_db_pools]
-version = "0.1.0-rc.1"
-default_features = false
-features = ["diesel_postgres_pool"]
+[profile.release]
+lto = true
+panic = "abort"
