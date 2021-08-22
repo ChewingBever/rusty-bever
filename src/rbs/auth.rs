@@ -45,6 +45,7 @@ async fn refresh_token(
     let refresh_token = refresh_token_request.into_inner().refresh_token;
 
     Ok(Json(
-        conn.run(move |c| rb::auth::refresh_token(c, &refresh_token)).await?
+        conn.run(move |c| rb::auth::refresh_token(c, &refresh_token))
+            .await?,
     ))
 }

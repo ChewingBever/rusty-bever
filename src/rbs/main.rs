@@ -11,6 +11,7 @@ use rocket::{fairing::AdHoc, Build, Rocket};
 use rocket_sync_db_pools::{database, diesel};
 
 mod auth;
+mod admin;
 pub(crate) mod guards;
 
 embed_migrations!();
@@ -55,4 +56,5 @@ fn rocket() -> _ {
         ))
         .attach(AdHoc::try_on_ignite("Create admin user", create_admin_user))
         .mount("/api/auth", auth::routes())
+        .mount("/api/admin", admin::routes())
 }

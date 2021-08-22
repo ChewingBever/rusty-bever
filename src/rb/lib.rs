@@ -3,7 +3,8 @@ extern crate diesel;
 
 pub mod auth;
 pub mod errors;
-mod models;
+pub mod admin;
+pub mod models;
 pub(crate) mod schema;
 
 pub use errors::Result;
