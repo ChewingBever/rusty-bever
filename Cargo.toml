@@ -42,3 +42,4 @@ base64 = "0.13.0"
 [profile.release]
 lto = true
 panic = "abort"
+codegen-units = 1
