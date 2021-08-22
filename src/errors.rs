@@ -28,6 +28,7 @@ pub enum RBError
     InvalidRefreshToken,
     DuplicateRefreshToken,
     DBError,
+    DuplicateUser,
 }
 
 impl<'r> Responder<'r, 'static> for RBError
@@ -46,6 +47,7 @@ impl<'r> Responder<'r, 'static> for RBError
             RBError::InvalidRefreshToken | RBError::DuplicateRefreshToken => {
                 (Status::Unauthorized, "Invalid refresh token.")
             }
+            RBError::DuplicateUser => (Status::Conflict, "User already exists"),
             _ => (Status::InternalServerError, "Internal server error"),
         };
 

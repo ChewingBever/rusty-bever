@@ -81,7 +81,6 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWT
         (current_time + chrono::Duration::seconds(crate::REFRESH_TOKEN_EXP_SECONDS)).naive_utc();
 
     // Store refresh token in database
-    // TODO add expires_at here (it's what's causing the errors)
     insert_into(refresh_tokens::refresh_tokens)
         .values(NewRefreshToken {
             token: refresh_token.to_vec(),
