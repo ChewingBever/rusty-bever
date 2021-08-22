@@ -126,9 +126,10 @@ pub fn refresh_token(conn: &PgConnection, refresh_token: &str) -> crate::Result<
     let token_bytes = base64::decode(refresh_token).map_err(|_| RBError::InvalidRefreshToken)?;
 
     // First, we request the token from the database to see if it's really a valid token
-    let token_entry = refresh_tokens::refresh_tokens
+    let (token_entry, user) = refresh_tokens::refresh_tokens
+        .inner_join(users::users)
         .filter(refresh_tokens::token.eq(token_bytes))
-        .first::<RefreshToken>(conn)
+        .first::<(RefreshToken, User)>(conn)
         .map_err(|_| RBError::InvalidRefreshToken)?;
 
     // If we see that the token has already been used before, we block the user.
@@ -142,15 +143,19 @@ pub fn refresh_token(conn: &PgConnection, refresh_token: &str) -> crate::Result<
         return Err(RBError::DuplicateRefreshToken);
     }
 
+    // Now we check if the token has already expired
+    let cur_time = Utc::now().naive_utc();
+
+    if token_entry.expires_at < cur_time {
+        return Err(RBError::TokenExpired);
+    }
+
     // We update the last_used_at value for the refresh token
     let target = refresh_tokens::refresh_tokens.filter(refresh_tokens::token.eq(token_entry.token));
     diesel::update(target)
-        .set(refresh_tokens::last_used_at.eq(Utc::now().naive_utc()))
+        .set(refresh_tokens::last_used_at.eq(cur_time))
         .execute(conn)
         .map_err(|_| RBError::DBError)?;
-
-    // Finally, we query the new user & generate a new token
-    let user = users::users.filter(users::id.eq(token_entry.user_id)).first::<User>(conn).map_err(|_| RBError::DBError)?;
 
     generate_jwt_token(conn, &user)
 }
