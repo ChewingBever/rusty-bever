@@ -1,10 +1,9 @@
 #[macro_use]
 extern crate diesel;
 
+pub mod db;
 pub mod auth;
 pub mod errors;
-pub mod admin;
-pub mod models;
 pub(crate) mod schema;
 
 pub use errors::Result;

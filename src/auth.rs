@@ -1,5 +1,8 @@
 use crate::errors::RBError;
-use crate::models::{NewRefreshToken, NewUser, RefreshToken, User};
+use crate::db::{
+    users::{User, NewUser},
+    tokens::{RefreshToken, NewRefreshToken}
+};
 use crate::schema::refresh_tokens::dsl as refresh_tokens;
 use crate::schema::users::dsl as users;
 use argon2::verify_encoded;

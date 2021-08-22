@@ -10,9 +10,8 @@ extern crate diesel_migrations;
 use rocket::{fairing::AdHoc, Build, Rocket};
 use rocket_sync_db_pools::{database, diesel};
 
-mod auth;
-mod admin;
 pub(crate) mod guards;
+mod routes;
 
 embed_migrations!();
 
@@ -55,6 +54,6 @@ fn rocket() -> _ {
             run_db_migrations,
         ))
         .attach(AdHoc::try_on_ignite("Create admin user", create_admin_user))
-        .mount("/api/auth", auth::routes())
-        .mount("/api/admin", admin::routes())
+        .mount("/api/auth", routes::auth::routes())
+        .mount("/api/admin", routes::admin::routes())
 }
