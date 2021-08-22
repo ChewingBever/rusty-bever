@@ -22,6 +22,14 @@ pub struct NewUser {
     pub admin: bool,
 }
 
+#[derive(Queryable)]
+pub struct RefreshToken {
+    pub token: Vec<u8>,
+    pub user_id: Uuid,
+    pub expires_at: chrono::NaiveDateTime,
+    pub last_used_at: Option<chrono::NaiveDateTime>,
+}
+
 #[derive(Insertable)]
 #[table_name = "refresh_tokens"]
 pub struct NewRefreshToken {

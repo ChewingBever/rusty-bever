@@ -15,7 +15,7 @@ CREATE TABLE refresh_tokens (
     -- This is more efficient than storing the text
     token bytea PRIMARY KEY,
     -- The user for whom the token was created
-    user_id uuid NOT NULL REFERENCES users(id),
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     -- When the token expires
     expires_at timestamp NOT NULL,
     -- When the token was last used (is NULL until used)

@@ -5,7 +5,7 @@ use rocket::serde::json::Json;
 use serde::Deserialize;
 
 pub(crate) fn routes() -> Vec<rocket::Route> {
-    routes![login, already_logged_in, me]
+    routes![login, already_logged_in, refresh_token]
 }
 
 #[derive(Deserialize)]
@@ -31,4 +31,19 @@ async fn login(conn: RbDbConn, credentials: Json<Credentials>) -> rb::Result<Jso
     Ok(Json(conn.run(move |c| generate_jwt_token(c, &user)).await?))
 }
 
-// #[post("/refresh", data=)]
+#[derive(Deserialize)]
+struct RefreshTokenRequest {
+    pub refresh_token: String,
+}
+
+#[post("/refresh", data = "<refresh_token_request>")]
+async fn refresh_token(
+    conn: RbDbConn,
+    refresh_token_request: Json<RefreshTokenRequest>,
+) -> rb::Result<Json<JWTResponse>> {
+    let refresh_token = refresh_token_request.into_inner().refresh_token;
+
+    Ok(Json(
+        conn.run(move |c| rb::auth::refresh_token(c, &refresh_token)),
+    ))
+}

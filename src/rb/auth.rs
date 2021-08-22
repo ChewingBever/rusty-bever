@@ -1,5 +1,5 @@
 use crate::errors::RBError;
-use crate::models::{NewRefreshToken, NewUser, User};
+use crate::models::{NewRefreshToken, NewUser, RefreshToken, User};
 use crate::schema::refresh_tokens::dsl as refresh_tokens;
 use crate::schema::users::dsl as users;
 use argon2::verify_encoded;
@@ -120,4 +120,37 @@ pub fn create_admin_user(
         .map_err(|_| RBError::AdminCreationError)?;
 
     Ok(true)
+}
+
+pub fn refresh_token(conn: &PgConnection, refresh_token: &str) -> crate::Result<JWTResponse> {
+    let token_bytes = base64::decode(refresh_token).map_err(|_| RBError::InvalidRefreshToken)?;
+
+    // First, we request the token from the database to see if it's really a valid token
+    let token_entry = refresh_tokens::refresh_tokens
+        .filter(refresh_tokens::token.eq(token_bytes))
+        .first::<RefreshToken>(conn)
+        .map_err(|_| RBError::InvalidRefreshToken)?;
+
+    // If we see that the token has already been used before, we block the user.
+    if token_entry.last_used_at.is_some() {
+        let target = users::users.filter(users::id.eq(token_entry.user_id));
+        diesel::update(target)
+            .set(users::blocked.eq(true))
+            .execute(conn)
+            .map_err(|_| RBError::DBError)?;
+
+        return Err(RBError::DuplicateRefreshToken);
+    }
+
+    // We update the last_used_at value for the refresh token
+    let target = refresh_tokens::refresh_tokens.filter(refresh_tokens::token.eq(token_entry.token));
+    diesel::update(target)
+        .set(refresh_tokens::last_used_at.eq(Utc::now().naive_utc()))
+        .execute(conn)
+        .map_err(|_| RBError::DBError)?;
+
+    // Finally, we query the new user & generate a new token
+    let user = users::users.filter(users::id.eq(token_entry.user_id)).first::<User>(conn).map_err(|_| RBError::DBError)?;
+
+    generate_jwt_token(conn, &user)
 }

@@ -21,6 +21,9 @@ pub enum RBError {
     PWSaltError,
     AdminCreationError,
     TokenExpired,
+    InvalidRefreshToken,
+    DuplicateRefreshToken,
+    DBError,
 }
 
 impl<'r> Responder<'r, 'static> for RBError {
@@ -34,6 +37,7 @@ impl<'r> Responder<'r, 'static> for RBError {
             RBError::JWTCreationError | RBError::MissingJWTKey => {
                 (Status::InternalServerError, "Failed to create tokens.")
             }
+            RBError::InvalidRefreshToken | RBError::DuplicateRefreshToken => (Status::Unauthorized, "Invalid refresh token."),
             _ => (Status::InternalServerError, "Internal server error"),
         };
 
