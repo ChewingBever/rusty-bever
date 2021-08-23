@@ -9,10 +9,10 @@ use rocket::{
 use sha2::Sha256;
 
 /// Extracts a "Authorization: Bearer" string from the headers.
-pub struct Bearer(String);
+pub struct Bearer<'a>(&'a str);
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for Bearer
+impl<'r> FromRequest<'r> for Bearer<'r>
 {
     type Error = rb::errors::RBError;
 
@@ -34,7 +34,7 @@ impl<'r> FromRequest<'r> for Bearer
             None => return Outcome::Forward(()),
         };
 
-        Outcome::Success(Self(auth_string.to_string()))
+        Outcome::Success(Self(auth_string))
     }
 }
 
@@ -104,9 +104,10 @@ impl<'r> FromRequest<'r> for Admin
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
     {
-        let user = try_outcome!(req.guard::<User>().await);
-        if user.0.admin {
-            Outcome::Success(Self(user.0))
+        let user = try_outcome!(req.guard::<User>().await).0;
+
+        if user.admin {
+            Outcome::Success(Self(user))
         } else {
             Outcome::Forward(())
         }
