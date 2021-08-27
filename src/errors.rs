@@ -7,35 +7,41 @@ use rocket::{
 };
 
 #[derive(Debug)]
-pub enum RBError
+pub enum RbError
 {
-    /// When the login requests an unknown user
-    UnknownUser,
-    BlockedUser,
-    /// Invalid login password.
-    InvalidPassword,
-    /// When a non-admin user tries to use an admin endpoint
-    Unauthorized,
-    /// When an expired JWT token is used for auth.
-    JWTTokenExpired,
-    /// Umbrella error for when something goes wrong whilst creating a JWT token pair
-    JWTCreationError,
-    JWTError,
-    MissingJWTKey,
-    PWSaltError,
+    AuthUnknownUser,
+    AuthBlockedUser,
+    AuthInvalidPassword,
+    AuthUnauthorized,
+    AuthTokenExpired,
+    AuthRefreshTokenExpired,
+    AuthInvalidRefreshToken,
+    AuthDuplicateRefreshToken,
+
+    Custom(&'static str),
+
     AdminCreationError,
-    TokenExpired,
-    InvalidRefreshToken,
-    DuplicateRefreshToken,
     DBError,
     DuplicateUser,
+}
+
+impl RbError {
+    pub fn status(&self) -> Status {
+        Status::NotFound
+    }
+
+    pub fn message(&self) -> &'static str {
+        match self {
+
+        }
+    }
 }
 
 impl<'r> Responder<'r, 'static> for RBError
 {
     fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static>
     {
-        let (status, message): (Status, &str) = match self {
+        let (status, message): (Status, &'static str) = match self {
             RBError::UnknownUser => (Status::NotFound, "Unknown user"),
             RBError::BlockedUser => (Status::Unauthorized, "This user is blocked"),
             RBError::InvalidPassword => (Status::Unauthorized, "Invalid password"),
