@@ -1,20 +1,27 @@
+# =====CONFIGURATION=====
+# Version of postgresql to compile libpq from
 PQ_VER  ?= 11.12
+# OpenSSL version
 SSL_VER ?= 1.1.1k
+# Dumb-init version
 DI_VER  ?= 1.2.5
 
 
-# Generated variables for ease of use
+# =====AUTO-GENERATED VARIABLES=====
 # This is such a lovely oneliner
 # NOTE: $(dir PATH) outputs a trailing slash
-OUT_DIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))out
+OUT_DIR     ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))out
+
 PREFIX      := $(OUT_DIR)/prefix
 OPENSSL_DIR := $(OUT_DIR)/openssl-$(SSL_VER)
 PQ_DIR      := $(OUT_DIR)/postgresql-$(PQ_VER)
 DI_DIR      := $(OUT_DIR)/dumb-init-$(DI_VER)
 
-CORES != nproc
+# Used in various make calls to specify parallel recipes
+CORES       != nproc
 
 
+# =====ENVIRONMENT VARIABLES=====
 export CC=musl-gcc -fPIC -pie -static
 export LD_LIBRARY_PATH=$(PREFIX)
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
@@ -25,12 +32,19 @@ export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 # Create the out dir
 $(shell mkdir -p "$(PREFIX)")
 
+
+# ====RECIPES====
 .PHONY: all
 all: build
 
 # libpq builds openssl as a dependency
 .PHONY: build
 build: libpq
+
+.PHONY: clean
+clean:
+	@ echo "Note: this only cleans the C dependencies, not the Cargo cache."
+	rm -rf "$(PQ_DIR)" "$(OPENSSL_DIR)" "$(DI_DIR)" "$(PREFIX)"
 
 
 # =====OPENSSL=====
@@ -62,8 +76,8 @@ $(PQ_DIR)/configure:
 	cd "$(PQ_DIR)" && \
 		LDFLAGS="-L$(PREFIX)/lib" CFLAGS="-I$(PREFIX)/include" ./configure \
 			--without-readline \
-			--without-zlib \
 			--with-openssl \
+			--without-zlib \
 			--prefix="$(PREFIX)" \
 			--host=x86_64-unknown-linux-musl
 
@@ -81,5 +95,6 @@ $(DI_DIR)/Makefile:
 	curl -sSL "https://github.com/Yelp/dumb-init/archive/refs/tags/v$(DI_VER).tar.gz" | \
 		tar -C "$(OUT_DIR)" -xz
 
+.PHONY: dumb-init
 dumb-init: $(DI_DIR)/Makefile
 	make -C "$(DI_DIR)" build
