@@ -1,15 +1,19 @@
-PQ_VER ?= 11.12
+PQ_VER  ?= 11.12
 SSL_VER ?= 1.1.1k
+DI_VER  ?= 1.2.5
 
-# This is such a lovely oneliner
-# NOTE: $(dir PATH) outputs a trailing slash
-OUT_DIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))out/deps
 
 # Generated variables for ease of use
-PREFIX := $(OUT_DIR)/prefix
+# This is such a lovely oneliner
+# NOTE: $(dir PATH) outputs a trailing slash
+OUT_DIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))out
+PREFIX      := $(OUT_DIR)/prefix
 OPENSSL_DIR := $(OUT_DIR)/openssl-$(SSL_VER)
-PQ_DIR := $(OUT_DIR)/postgresql-$(PQ_VER)
+PQ_DIR      := $(OUT_DIR)/postgresql-$(PQ_VER)
+DI_DIR      := $(OUT_DIR)/dumb-init-$(DI_VER)
+
 CORES != nproc
+
 
 export CC=musl-gcc -fPIC -pie -static
 export LD_LIBRARY_PATH=$(PREFIX)
@@ -21,8 +25,12 @@ export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 # Create the out dir
 $(shell mkdir -p "$(PREFIX)")
 
-all: openssl
 .PHONY: all
+all: build
+
+# libpq builds openssl as a dependency
+.PHONY: build
+build: libpq
 
 
 # =====OPENSSL=====
@@ -39,11 +47,11 @@ $(OPENSSL_DIR)/Configure:
 			linux-x86_64
 
 # Build OpenSSL
+.PHONY: openssl
 openssl: $(OPENSSL_DIR)/Configure
 	C_INCLUDE_PATH="$(PREFIX)/include" $(MAKE) -C "$(OPENSSL_DIR)" depend
 	$(MAKE) -C "$(OPENSSL_DIR)" -j$(CORES)
 	$(MAKE) -C "$(OPENSSL_DIR)" install_sw
-.PHONY: openssl
 
 
 # =====LIBPQ=====
@@ -59,9 +67,19 @@ $(PQ_DIR)/configure:
 			--prefix="$(PREFIX)" \
 			--host=x86_64-unknown-linux-musl
 
-libpq: $(PQ_DIR)/configure
+.PHONY: libpq
+libpq: openssl $(PQ_DIR)/configure
 	make -C "$(PQ_DIR)/src/interfaces/libpq" -j$(CORES) all-static-lib
 	make -C "$(PQ_DIR)/src/interfaces/libpq" install install-lib-static
 	make -C "$(PQ_DIR)/src/bin/pg_config" -j $(CORES)
 	make -C "$(PQ_DIR)/src/bin/pg_config" install
-.PHONY: libpq
+
+
+# =====DUMB-INIT=====
+# NOTE: this is only used inside the Docker image, but it's here for completeness.
+$(DI_DIR)/Makefile:
+	curl -sSL "https://github.com/Yelp/dumb-init/archive/refs/tags/v$(DI_VER).tar.gz" | \
+		tar -C "$(OUT_DIR)" -xz
+
+dumb-init: $(DI_DIR)/Makefile
+	make -C "$(DI_DIR)" build
