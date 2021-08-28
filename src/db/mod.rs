@@ -1,5 +1,5 @@
 pub mod tokens;
 pub mod users;
 
-pub use users::{User, NewUser};
-pub use tokens::{RefreshToken, NewRefreshToken};
+pub use tokens::{NewRefreshToken, RefreshToken};
+pub use users::{NewUser, User};

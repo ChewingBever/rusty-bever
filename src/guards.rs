@@ -14,7 +14,7 @@ pub struct Bearer<'a>(&'a str);
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Bearer<'r>
 {
-    type Error = rb::errors::RBError;
+    type Error = rb::errors::RbError;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
     {
@@ -44,7 +44,7 @@ pub struct JWT(Claims);
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for JWT
 {
-    type Error = rb::errors::RBError;
+    type Error = rb::errors::RbError;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
     {
@@ -54,19 +54,27 @@ impl<'r> FromRequest<'r> for JWT
         let secret = match std::env::var("JWT_KEY") {
             Ok(key) => key,
             Err(_) => {
-                return Outcome::Failure((Status::InternalServerError, Self::Error::MissingJWTKey))
+                return Outcome::Failure((
+                    Status::InternalServerError,
+                    Self::Error::AuthUnauthorized,
+                ))
             }
         };
         let key: Hmac<Sha256> = match Hmac::new_from_slice(secret.as_bytes()) {
             Ok(key) => key,
             Err(_) => {
-                return Outcome::Failure((Status::InternalServerError, Self::Error::JWTError))
+                return Outcome::Failure((
+                    Status::InternalServerError,
+                    Self::Error::Custom("Failed to do Hmac thing."),
+                ))
             }
         };
         // Verify token using key
         let claims: Claims = match bearer.verify_with_key(&key) {
             Ok(claims) => claims,
-            Err(_) => return Outcome::Failure((Status::Unauthorized, Self::Error::Unauthorized)),
+            Err(_) => {
+                return Outcome::Failure((Status::Unauthorized, Self::Error::AuthUnauthorized))
+            }
         };
 
         Outcome::Success(Self(claims))
@@ -79,7 +87,7 @@ pub struct User(Claims);
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for User
 {
-    type Error = rb::errors::RBError;
+    type Error = rb::errors::RbError;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
     {
@@ -87,7 +95,7 @@ impl<'r> FromRequest<'r> for User
 
         // Verify key hasn't yet expired
         if chrono::Utc::now().timestamp() > claims.exp {
-            return Outcome::Failure((Status::Forbidden, Self::Error::TokenExpired));
+            return Outcome::Failure((Status::Forbidden, Self::Error::AuthTokenExpired));
         }
 
         Outcome::Success(Self(claims))
@@ -100,7 +108,7 @@ pub struct Admin(Claims);
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Admin
 {
-    type Error = rb::errors::RBError;
+    type Error = rb::errors::RbError;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
     {

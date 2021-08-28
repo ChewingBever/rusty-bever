@@ -1,7 +1,4 @@
-use rb::{
-    db,
-    errors::RBError,
-};
+use rb::{db, errors::RbError};
 use rocket::serde::json::Json;
 use uuid::Uuid;
 
@@ -27,12 +24,16 @@ async fn create_user(admin: Admin, conn: RbDbConn, user: Json<db::NewUser>) -> r
 }
 
 #[get("/users/<user_id_str>")]
-async fn get_user_info(_admin: Admin, conn: RbDbConn, user_id_str: &str) -> rb::Result<Json<db::User>>
+async fn get_user_info(
+    _admin: Admin,
+    conn: RbDbConn,
+    user_id_str: &str,
+) -> rb::Result<Json<db::User>>
 {
-    let user_id = Uuid::parse_str(user_id_str).map_err(|_| RBError::UnknownUser)?;
+    let user_id = Uuid::parse_str(user_id_str).map_err(|_| RbError::UMUnknownUser)?;
 
     match conn.run(move |c| db::users::find(c, user_id)).await {
         Some(user) => Ok(Json(user)),
-        None => Err(RBError::UnknownUser),
+        None => Err(RbError::UMUnknownUser),
     }
 }

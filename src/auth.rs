@@ -12,7 +12,7 @@ use crate::{
         tokens::{NewRefreshToken, RefreshToken},
         users::{NewUser, User},
     },
-    errors::RBError,
+    errors::RbError,
     schema::{refresh_tokens::dsl as refresh_tokens, users::dsl as users},
 };
 
@@ -22,16 +22,16 @@ pub fn verify_user(conn: &PgConnection, username: &str, password: &str) -> crate
     let user = users::users
         .filter(users::username.eq(username))
         .first::<User>(conn)
-        .map_err(|_| RBError::UnknownUser)?;
+        .map_err(|_| RbError::AuthUnknownUser)?;
 
     // Check if a user is blocked
     if user.blocked {
-        return Err(RBError::BlockedUser);
+        return Err(RbError::AuthBlockedUser);
     }
 
     match verify_encoded(user.password.as_str(), password.as_bytes()) {
         Ok(true) => Ok(user),
-        _ => Err(RBError::InvalidPassword),
+        _ => Err(RbError::AuthInvalidPassword),
     }
 }
 
@@ -54,9 +54,9 @@ pub struct Claims
 
 pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWTResponse>
 {
-    let secret = std::env::var("JWT_KEY").map_err(|_| RBError::MissingJWTKey)?;
-    let key: Hmac<Sha256> =
-        Hmac::new_from_slice(secret.as_bytes()).map_err(|_| RBError::JWTCreationError)?;
+    let secret = std::env::var("JWT_KEY").map_err(|_| RbError::Custom("Missing JWT key."))?;
+    let key: Hmac<Sha256> = Hmac::new_from_slice(secret.as_bytes())
+        .map_err(|_| RbError::Custom("Couldn't create Hmac key."))?;
 
     let current_time = Utc::now();
 
@@ -71,7 +71,7 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWT
     // Sign the claims into a new token
     let token = claims
         .sign_with_key(&key)
-        .map_err(|_| RBError::JWTCreationError)?;
+        .map_err(|_| RbError::Custom("Couldn't sign JWT."))?;
 
     // Generate a random refresh token
     let mut refresh_token = [0u8; crate::REFRESH_TOKEN_N_BYTES];
@@ -88,7 +88,7 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWT
             expires_at: refresh_expire,
         })
         .execute(conn)
-        .map_err(|_| RBError::JWTCreationError)?;
+        .map_err(|_| RbError::Custom("Couldn't insert refresh token."))?;
 
     Ok(JWTResponse {
         token,
@@ -104,7 +104,8 @@ pub fn hash_password(password: &str) -> crate::Result<String>
 
     // Encode the actual password
     let config = argon2::Config::default();
-    argon2::hash_encoded(password.as_bytes(), &salt, &config).map_err(|_| RBError::PWSaltError)
+    argon2::hash_encoded(password.as_bytes(), &salt, &config)
+        .map_err(|_| RbError::Custom("Couldn't hash password."))
 }
 
 pub fn create_admin_user(conn: &PgConnection, username: &str, password: &str)
@@ -123,21 +124,22 @@ pub fn create_admin_user(conn: &PgConnection, username: &str, password: &str)
         .do_update()
         .set(&new_user)
         .execute(conn)
-        .map_err(|_| RBError::AdminCreationError)?;
+        .map_err(|_| RbError::Custom("Couldn't create admin."))?;
 
     Ok(true)
 }
 
 pub fn refresh_token(conn: &PgConnection, refresh_token: &str) -> crate::Result<JWTResponse>
 {
-    let token_bytes = base64::decode(refresh_token).map_err(|_| RBError::InvalidRefreshToken)?;
+    let token_bytes =
+        base64::decode(refresh_token).map_err(|_| RbError::AuthInvalidRefreshToken)?;
 
     // First, we request the token from the database to see if it's really a valid token
     let (token_entry, user) = refresh_tokens::refresh_tokens
         .inner_join(users::users)
         .filter(refresh_tokens::token.eq(token_bytes))
         .first::<(RefreshToken, User)>(conn)
-        .map_err(|_| RBError::InvalidRefreshToken)?;
+        .map_err(|_| RbError::AuthInvalidRefreshToken)?;
 
     // If we see that the token has already been used before, we block the user.
     if token_entry.last_used_at.is_some() {
@@ -145,16 +147,16 @@ pub fn refresh_token(conn: &PgConnection, refresh_token: &str) -> crate::Result<
         diesel::update(target)
             .set(users::blocked.eq(true))
             .execute(conn)
-            .map_err(|_| RBError::DBError)?;
+            .map_err(|_| RbError::Custom("Couldn't block user."))?;
 
-        return Err(RBError::DuplicateRefreshToken);
+        return Err(RbError::AuthDuplicateRefreshToken);
     }
 
     // Now we check if the token has already expired
     let cur_time = Utc::now().naive_utc();
 
     if token_entry.expires_at < cur_time {
-        return Err(RBError::TokenExpired);
+        return Err(RbError::AuthTokenExpired);
     }
 
     // We update the last_used_at value for the refresh token
@@ -162,7 +164,7 @@ pub fn refresh_token(conn: &PgConnection, refresh_token: &str) -> crate::Result<
     diesel::update(target)
         .set(refresh_tokens::last_used_at.eq(cur_time))
         .execute(conn)
-        .map_err(|_| RBError::DBError)?;
+        .map_err(|_| RbError::Custom("Couldn't update last used time."))?;
 
     generate_jwt_token(conn, &user)
 }
