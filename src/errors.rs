@@ -1,62 +1,87 @@
-use std::io;
-
 use rocket::{
     http::Status,
     request::Request,
-    response::{self, Responder, Response},
+    response::{self, Responder},
+    serde::json::json,
 };
 
 #[derive(Debug)]
-pub enum RBError
+pub enum RbError
 {
-    /// When the login requests an unknown user
-    UnknownUser,
-    BlockedUser,
-    /// Invalid login password.
-    InvalidPassword,
-    /// When a non-admin user tries to use an admin endpoint
-    Unauthorized,
-    /// When an expired JWT token is used for auth.
-    JWTTokenExpired,
-    /// Umbrella error for when something goes wrong whilst creating a JWT token pair
-    JWTCreationError,
-    JWTError,
-    MissingJWTKey,
-    PWSaltError,
-    AdminCreationError,
-    TokenExpired,
-    InvalidRefreshToken,
-    DuplicateRefreshToken,
-    DBError,
-    DuplicateUser,
+    AuthUnknownUser,
+    AuthBlockedUser,
+    AuthInvalidPassword,
+    AuthUnauthorized,
+    AuthTokenExpired,
+    AuthRefreshTokenExpired,
+    AuthInvalidRefreshToken,
+    AuthDuplicateRefreshToken,
+
+    // UM = User Management
+    UMDuplicateUser,
+    UMUnknownUser,
+
+    DbError(&'static str),
+    Custom(&'static str),
 }
 
-impl<'r> Responder<'r, 'static> for RBError
+impl RbError
 {
-    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static>
+    pub fn status(&self) -> Status
     {
-        let (status, message): (Status, &str) = match self {
-            RBError::UnknownUser => (Status::NotFound, "Unknown user"),
-            RBError::BlockedUser => (Status::Unauthorized, "This user is blocked"),
-            RBError::InvalidPassword => (Status::Unauthorized, "Invalid password"),
-            RBError::Unauthorized => (Status::Unauthorized, "Unauthorized"),
-            RBError::JWTTokenExpired => (Status::Unauthorized, "Token expired"),
-            RBError::JWTCreationError | RBError::MissingJWTKey => {
-                (Status::InternalServerError, "Failed to create tokens.")
-            }
-            RBError::InvalidRefreshToken | RBError::DuplicateRefreshToken => {
-                (Status::Unauthorized, "Invalid refresh token.")
-            }
-            RBError::DuplicateUser => (Status::Conflict, "User already exists"),
-            _ => (Status::InternalServerError, "Internal server error"),
-        };
+        // Every entry gets its own line for easy editing later when needed
+        match self {
+            RbError::AuthUnknownUser => Status::NotFound,
+            RbError::AuthBlockedUser => Status::Forbidden,
+            RbError::AuthInvalidPassword => Status::Unauthorized,
+            RbError::AuthUnauthorized => Status::Unauthorized,
+            RbError::AuthTokenExpired => Status::Unauthorized,
+            RbError::AuthRefreshTokenExpired => Status::Unauthorized,
+            RbError::AuthInvalidRefreshToken => Status::Unauthorized,
+            RbError::AuthDuplicateRefreshToken => Status::Unauthorized,
 
-        let mut res = Response::new();
-        res.set_status(status);
-        res.set_sized_body(message.len(), io::Cursor::new(message));
+            RbError::UMDuplicateUser => Status::Conflict,
 
-        Ok(res)
+            RbError::Custom(_) => Status::InternalServerError,
+            _ => Status::InternalServerError,
+        }
+    }
+
+    pub fn message(&self) -> &'static str
+    {
+        match self {
+            RbError::AuthUnknownUser => "This user doesn't exist.",
+            RbError::AuthBlockedUser => "This user is blocked.",
+            RbError::AuthInvalidPassword => "Invalid credentials.",
+            RbError::AuthUnauthorized => "You are not authorized to access this resource.",
+            RbError::AuthTokenExpired => "This token is not valid anymore.",
+            RbError::AuthRefreshTokenExpired => "This refresh token is not valid anymore.",
+            RbError::AuthInvalidRefreshToken => "This refresh token is not valid.",
+            RbError::AuthDuplicateRefreshToken => {
+                "This refresh token has already been used. The user has been blocked."
+            }
+
+            RbError::UMDuplicateUser => "This user already exists.",
+
+            RbError::Custom(message) => message,
+            _ => "",
+        }
     }
 }
 
-pub type Result<T> = std::result::Result<T, RBError>;
+impl<'r> Responder<'r, 'static> for RbError
+{
+    fn respond_to(self, req: &'r Request<'_>) -> response::Result<'static>
+    {
+        let status = self.status();
+        let content = json!({
+            "status": status.code,
+            "message": self.message(),
+        });
+
+        // TODO add status to response
+        content.respond_to(req)
+    }
+}
+
+pub type Result<T> = std::result::Result<T, RbError>;

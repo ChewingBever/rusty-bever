@@ -1,4 +1,7 @@
-use rb::auth::{generate_jwt_token, verify_user, JWTResponse};
+use rb::auth::{
+    jwt::{generate_jwt_token, JWTResponse},
+    verify_user,
+};
 use rocket::serde::json::Json;
 use serde::Deserialize;
 
@@ -51,7 +54,7 @@ async fn refresh_token(
     let refresh_token = refresh_token_request.into_inner().refresh_token;
 
     Ok(Json(
-        conn.run(move |c| rb::auth::refresh_token(c, &refresh_token))
+        conn.run(move |c| rb::auth::jwt::refresh_token(c, &refresh_token))
             .await?,
     ))
 }
