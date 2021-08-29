@@ -1,5 +1,5 @@
 use chrono::Utc;
-use diesel::{insert_into, prelude::*, PgConnection};
+use diesel::{prelude::*, PgConnection};
 use hmac::{Hmac, NewMac};
 use jwt::SignWithKey;
 use rand::{thread_rng, Rng};
@@ -7,10 +7,8 @@ use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
 use crate::{
-    db::{
-        tokens::{NewRefreshToken, RefreshToken},
-        users::User,
-    },
+    db,
+    db::{tokens::NewRefreshToken, users::User},
     errors::{RbError, RbResult},
     schema::{refresh_tokens::dsl as refresh_tokens, users::dsl as users},
 };
@@ -61,14 +59,14 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> RbResult<JWTRespo
         (current_time + chrono::Duration::seconds(crate::REFRESH_TOKEN_EXP_SECONDS)).naive_utc();
 
     // Store refresh token in database
-    insert_into(refresh_tokens::refresh_tokens)
-        .values(NewRefreshToken {
+    db::tokens::create(
+        conn,
+        &NewRefreshToken {
             token: refresh_token.to_vec(),
             user_id: user.id,
             expires_at: refresh_expire,
-        })
-        .execute(conn)
-        .map_err(|_| RbError::Custom("Couldn't insert refresh token."))?;
+        },
+    )?;
 
     Ok(JWTResponse {
         token,
@@ -82,11 +80,8 @@ pub fn refresh_token(conn: &PgConnection, refresh_token: &str) -> RbResult<JWTRe
         base64::decode(refresh_token).map_err(|_| RbError::AuthInvalidRefreshToken)?;
 
     // First, we request the token from the database to see if it's really a valid token
-    let (token_entry, user) = refresh_tokens::refresh_tokens
-        .inner_join(users::users)
-        .filter(refresh_tokens::token.eq(token_bytes))
-        .first::<(RefreshToken, User)>(conn)
-        .map_err(|_| RbError::AuthInvalidRefreshToken)?;
+    let (token_entry, user) =
+        db::tokens::find_with_user(conn, &token_bytes).ok_or(RbError::AuthInvalidRefreshToken)?;
 
     // If we see that the token has already been used before, we block the user.
     if token_entry.last_used_at.is_some() {

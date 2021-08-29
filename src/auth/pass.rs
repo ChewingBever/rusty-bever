@@ -1,9 +1,9 @@
 use argon2::verify_encoded;
-use diesel::{insert_into, prelude::*, PgConnection};
+use diesel::{prelude::*, PgConnection};
 use rand::{thread_rng, Rng};
 
 use crate::{
-    db::users::{NewUser, User},
+    db::users::User,
     errors::{RbError, RbResult},
     schema::users::dsl as users,
 };
