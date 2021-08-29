@@ -1,22 +1,37 @@
 // This needs to be explicitely included before diesel is imported to make sure
 // compilation succeeds in the release Docker image.
 extern crate openssl;
-
 #[macro_use]
 extern crate rocket;
 #[macro_use]
 extern crate diesel_migrations;
+#[macro_use]
+extern crate diesel;
 
 use rocket::{fairing::AdHoc, Build, Rocket};
-use rocket_sync_db_pools::{database, diesel};
+use rocket_sync_db_pools::database;
 
-pub(crate) mod guards;
+pub use crate::errors::{RbError, RbResult};
+
+pub mod auth;
+pub mod db;
+pub mod errors;
+pub mod guards;
 mod routes;
+pub(crate) mod schema;
 
-embed_migrations!();
+// Any import defaults are defined here
+/// Expire time for the JWT tokens in seconds.
+const JWT_EXP_SECONDS: i64 = 600;
+/// Amount of bytes the refresh tokens should consist of
+const REFRESH_TOKEN_N_BYTES: usize = 64;
+/// Expire time for refresh tokens; here: one week
+const REFRESH_TOKEN_EXP_SECONDS: i64 = 604800;
 
 #[database("postgres_rb")]
 pub struct RbDbConn(diesel::PgConnection);
+
+embed_migrations!();
 
 async fn run_db_migrations(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocket<Build>>
 {
@@ -39,7 +54,7 @@ async fn create_admin_user(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocke
         .await
         .expect("database connection");
     conn.run(move |c| {
-        rb::auth::create_admin_user(c, &admin_user, &admin_password)
+        auth::pass::create_admin_user(c, &admin_user, &admin_password)
             .expect("failed to create admin user")
     })
     .await;
@@ -57,6 +72,9 @@ fn rocket() -> _
             run_db_migrations,
         ))
         .attach(AdHoc::try_on_ignite("Create admin user", create_admin_user))
-        .mount("/api/auth", routes::auth::routes())
+        .mount(
+            "/api/auth",
+            routes![auth::already_logged_in, auth::login, auth::refresh_token,],
+        )
         .mount("/api/admin", routes::admin::routes())
 }

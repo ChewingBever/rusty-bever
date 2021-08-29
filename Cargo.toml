@@ -4,10 +4,6 @@ version = "0.1.0"
 authors = ["Jef Roosens <roosensjef@gmail.com>"]
 edition = "2018"
 
-[lib]
-name = "rb"
-path = "src/lib.rs"
-
 [[bin]]
 name = "rbd"
 path = "src/main.rs"

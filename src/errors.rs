@@ -84,4 +84,4 @@ impl<'r> Responder<'r, 'static> for RbError
     }
 }
 
-pub type Result<T> = std::result::Result<T, RbError>;
+pub type RbResult<T> = std::result::Result<T, RbError>;

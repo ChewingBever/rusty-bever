@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    errors::RbError,
+    errors::{RbError, RbResult},
     schema::{users, users::dsl::*},
 };
 
@@ -28,7 +28,7 @@ pub struct NewUser
     pub admin: bool,
 }
 
-pub fn all(conn: &PgConnection) -> crate::Result<Vec<User>>
+pub fn all(conn: &PgConnection) -> RbResult<Vec<User>>
 {
     users
         .load::<User>(conn)
@@ -40,7 +40,7 @@ pub fn find(conn: &PgConnection, user_id: Uuid) -> Option<User>
     users.find(user_id).first::<User>(conn).ok()
 }
 
-pub fn create(conn: &PgConnection, new_user: &NewUser) -> crate::Result<()>
+pub fn create(conn: &PgConnection, new_user: &NewUser) -> RbResult<()>
 {
     let count = diesel::insert_into(users)
         .values(new_user)
@@ -54,7 +54,7 @@ pub fn create(conn: &PgConnection, new_user: &NewUser) -> crate::Result<()>
     Ok(())
 }
 
-pub fn delete(conn: &PgConnection, user_id: Uuid) -> crate::Result<()>
+pub fn delete(conn: &PgConnection, user_id: Uuid) -> RbResult<()>
 {
     diesel::delete(users.filter(id.eq(user_id)))
         .execute(conn)

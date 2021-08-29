@@ -1,8 +1,12 @@
-use rb::{db, errors::RbError};
 use rocket::serde::json::Json;
 use uuid::Uuid;
 
-use crate::{guards::Admin, RbDbConn};
+use crate::{
+    db,
+    errors::{RbError, RbResult},
+    guards::Admin,
+    RbDbConn,
+};
 
 pub fn routes() -> Vec<rocket::Route>
 {
@@ -10,13 +14,13 @@ pub fn routes() -> Vec<rocket::Route>
 }
 
 #[get("/users")]
-async fn get_users(_admin: Admin, conn: RbDbConn) -> rb::Result<Json<Vec<db::User>>>
+async fn get_users(_admin: Admin, conn: RbDbConn) -> RbResult<Json<Vec<db::User>>>
 {
     Ok(Json(conn.run(|c| db::users::all(c)).await?))
 }
 
 #[post("/users", data = "<user>")]
-async fn create_user(_admin: Admin, conn: RbDbConn, user: Json<db::NewUser>) -> rb::Result<()>
+async fn create_user(_admin: Admin, conn: RbDbConn, user: Json<db::NewUser>) -> RbResult<()>
 {
     Ok(conn
         .run(move |c| db::users::create(c, &user.into_inner()))
@@ -24,11 +28,8 @@ async fn create_user(_admin: Admin, conn: RbDbConn, user: Json<db::NewUser>) -> 
 }
 
 #[get("/users/<user_id_str>")]
-async fn get_user_info(
-    _admin: Admin,
-    conn: RbDbConn,
-    user_id_str: &str,
-) -> rb::Result<Json<db::User>>
+async fn get_user_info(_admin: Admin, conn: RbDbConn, user_id_str: &str)
+    -> RbResult<Json<db::User>>
 {
     let user_id = Uuid::parse_str(user_id_str).map_err(|_| RbError::UMUnknownUser)?;
 

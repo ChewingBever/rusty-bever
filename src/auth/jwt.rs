@@ -11,7 +11,7 @@ use crate::{
         tokens::{NewRefreshToken, RefreshToken},
         users::User,
     },
-    errors::RbError,
+    errors::{RbError, RbResult},
     schema::{refresh_tokens::dsl as refresh_tokens, users::dsl as users},
 };
 
@@ -32,7 +32,7 @@ pub struct Claims
     pub exp: i64,
 }
 
-pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWTResponse>
+pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> RbResult<JWTResponse>
 {
     let secret = std::env::var("JWT_KEY").map_err(|_| RbError::Custom("Missing JWT key."))?;
     let key: Hmac<Sha256> = Hmac::new_from_slice(secret.as_bytes())
@@ -76,7 +76,7 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> crate::Result<JWT
     })
 }
 
-pub fn refresh_token(conn: &PgConnection, refresh_token: &str) -> crate::Result<JWTResponse>
+pub fn refresh_token(conn: &PgConnection, refresh_token: &str) -> RbResult<JWTResponse>
 {
     let token_bytes =
         base64::decode(refresh_token).map_err(|_| RbError::AuthInvalidRefreshToken)?;

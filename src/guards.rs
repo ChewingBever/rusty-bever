@@ -1,6 +1,5 @@
 use hmac::{Hmac, NewMac};
 use jwt::VerifyWithKey;
-use rb::auth::jwt::Claims;
 use rocket::{
     http::Status,
     outcome::try_outcome,
@@ -8,13 +7,15 @@ use rocket::{
 };
 use sha2::Sha256;
 
+use crate::auth::jwt::Claims;
+
 /// Extracts a "Authorization: Bearer" string from the headers.
 pub struct Bearer<'a>(&'a str);
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Bearer<'r>
 {
-    type Error = rb::errors::RbError;
+    type Error = crate::errors::RbError;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
     {
@@ -44,7 +45,7 @@ pub struct Jwt(Claims);
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Jwt
 {
-    type Error = rb::errors::RbError;
+    type Error = crate::errors::RbError;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
     {
@@ -87,7 +88,7 @@ pub struct User(Claims);
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for User
 {
-    type Error = rb::errors::RbError;
+    type Error = crate::errors::RbError;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
     {
@@ -108,7 +109,7 @@ pub struct Admin(Claims);
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Admin
 {
-    type Error = rb::errors::RbError;
+    type Error = crate::errors::RbError;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
     {

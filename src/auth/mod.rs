@@ -1,63 +1,58 @@
-use argon2::verify_encoded;
-use diesel::{insert_into, prelude::*, PgConnection};
-use rand::{thread_rng, Rng};
+use rocket::serde::json::Json;
+use serde::Deserialize;
 
-use crate::{
-    db::users::{NewUser, User},
-    errors::RbError,
-    schema::users::dsl as users,
+use self::{
+    jwt::{generate_jwt_token, JWTResponse},
+    pass::verify_user,
 };
+use crate::{guards::User, RbDbConn, RbResult};
 
 pub mod jwt;
+pub mod pass;
 
-pub fn verify_user(conn: &PgConnection, username: &str, password: &str) -> crate::Result<User>
+#[derive(Deserialize)]
+pub struct Credentials
 {
-    // TODO handle non-"NotFound" Diesel errors accordingely
-    let user = users::users
-        .filter(users::username.eq(username))
-        .first::<User>(conn)
-        .map_err(|_| RbError::AuthUnknownUser)?;
-
-    // Check if a user is blocked
-    if user.blocked {
-        return Err(RbError::AuthBlockedUser);
-    }
-
-    match verify_encoded(user.password.as_str(), password.as_bytes()) {
-        Ok(true) => Ok(user),
-        _ => Err(RbError::AuthInvalidPassword),
-    }
+    username: String,
+    password: String,
 }
 
-pub fn hash_password(password: &str) -> crate::Result<String>
+#[post("/login")]
+pub async fn already_logged_in(_user: User) -> String
 {
-    // Generate a random salt
-    let mut salt = [0u8; 64];
-    thread_rng().fill(&mut salt[..]);
-
-    // Encode the actual password
-    let config = argon2::Config::default();
-    argon2::hash_encoded(password.as_bytes(), &salt, &config)
-        .map_err(|_| RbError::Custom("Couldn't hash password."))
+    String::from("You're already logged in!")
 }
 
-pub fn create_admin_user(conn: &PgConnection, username: &str, password: &str)
-    -> crate::Result<bool>
+#[post("/login", data = "<credentials>", rank = 2)]
+pub async fn login(conn: RbDbConn, credentials: Json<Credentials>) -> RbResult<Json<JWTResponse>>
 {
-    let pass_hashed = hash_password(password)?;
-    let new_user = NewUser {
-        username: username.to_string(),
-        password: pass_hashed,
-        admin: true,
-    };
+    let credentials = credentials.into_inner();
 
-    insert_into(users::users)
-        .values(&new_user)
-        .on_conflict(users::username)
-        .do_update()
-        .set(&new_user)
-        .execute(conn)
-        .map_err(|_| RbError::Custom("Couldn't create admin."))?;
+    // Get the user, if credentials are valid
+    let user = conn
+        .run(move |c| verify_user(c, &credentials.username, &credentials.password))
+        .await?;
 
-    Ok(true)
+    Ok(Json(conn.run(move |c| generate_jwt_token(c, &user)).await?))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshTokenRequest
+{
+    pub refresh_token: String,
+}
+
+#[post("/refresh", data = "<refresh_token_request>")]
+pub async fn refresh_token(
+    conn: RbDbConn,
+    refresh_token_request: Json<RefreshTokenRequest>,
+) -> RbResult<Json<JWTResponse>>
+{
+    let refresh_token = refresh_token_request.into_inner().refresh_token;
+
+    Ok(Json(
+        conn.run(move |c| crate::auth::jwt::refresh_token(c, &refresh_token))
+            .await?,
+    ))
 }
