@@ -9,7 +9,7 @@ use sha2::Sha256;
 use crate::{
     db::{
         tokens::{NewRefreshToken, RefreshToken},
-        users::{NewUser, User},
+        users::User,
     },
     errors::RbError,
     schema::{refresh_tokens::dsl as refresh_tokens, users::dsl as users},

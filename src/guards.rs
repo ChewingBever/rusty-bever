@@ -39,10 +39,10 @@ impl<'r> FromRequest<'r> for Bearer<'r>
 }
 
 /// Verifies the provided JWT is valid.
-pub struct JWT(Claims);
+pub struct Jwt(Claims);
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for JWT
+impl<'r> FromRequest<'r> for Jwt
 {
     type Error = rb::errors::RbError;
 
@@ -91,7 +91,7 @@ impl<'r> FromRequest<'r> for User
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
     {
-        let claims = try_outcome!(req.guard::<JWT>().await).0;
+        let claims = try_outcome!(req.guard::<Jwt>().await).0;
 
         // Verify key hasn't yet expired
         if chrono::Utc::now().timestamp() > claims.exp {

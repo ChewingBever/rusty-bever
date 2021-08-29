@@ -10,13 +10,13 @@ pub fn routes() -> Vec<rocket::Route>
 }
 
 #[get("/users")]
-async fn get_users(admin: Admin, conn: RbDbConn) -> rb::Result<Json<Vec<db::User>>>
+async fn get_users(_admin: Admin, conn: RbDbConn) -> rb::Result<Json<Vec<db::User>>>
 {
     Ok(Json(conn.run(|c| db::users::all(c)).await?))
 }
 
 #[post("/users", data = "<user>")]
-async fn create_user(admin: Admin, conn: RbDbConn, user: Json<db::NewUser>) -> rb::Result<()>
+async fn create_user(_admin: Admin, conn: RbDbConn, user: Json<db::NewUser>) -> rb::Result<()>
 {
     Ok(conn
         .run(move |c| db::users::create(c, &user.into_inner()))

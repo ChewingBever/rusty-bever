@@ -1,19 +1,11 @@
-use ::jwt::SignWithKey;
 use argon2::verify_encoded;
-use chrono::Utc;
 use diesel::{insert_into, prelude::*, PgConnection};
-use hmac::{Hmac, NewMac};
 use rand::{thread_rng, Rng};
-use serde::{Deserialize, Serialize};
-use sha2::Sha256;
 
 use crate::{
-    db::{
-        tokens::{NewRefreshToken, RefreshToken},
-        users::{NewUser, User},
-    },
+    db::users::{NewUser, User},
     errors::RbError,
-    schema::{refresh_tokens::dsl as refresh_tokens, users::dsl as users},
+    schema::users::dsl as users,
 };
 
 pub mod jwt;
