@@ -11,13 +11,11 @@ extern crate diesel;
 use rocket::{fairing::AdHoc, Build, Rocket};
 use rocket_sync_db_pools::database;
 
-pub use crate::errors::{RbError, RbResult};
-
+mod admin;
 pub mod auth;
 pub mod db;
 pub mod errors;
 pub mod guards;
-mod routes;
 pub(crate) mod schema;
 
 // Any import defaults are defined here
@@ -54,7 +52,7 @@ async fn create_admin_user(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocke
         .await
         .expect("database connection");
     conn.run(move |c| {
-        auth::pass::create_admin_user(c, &admin_user, &admin_password)
+        admin::create_admin_user(c, &admin_user, &admin_password)
             .expect("failed to create admin user")
     })
     .await;
@@ -76,5 +74,8 @@ fn rocket() -> _
             "/api/auth",
             routes![auth::already_logged_in, auth::login, auth::refresh_token,],
         )
-        .mount("/api/admin", routes::admin::routes())
+        .mount(
+            "/api/admin",
+            routes![admin::get_users, admin::create_user, admin::get_user_info],
+        )
 }

@@ -4,9 +4,8 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     db::users::{NewUser, User},
-    errors::RbError,
+    errors::{RbError, RbResult},
     schema::users::dsl as users,
-    RbResult,
 };
 
 pub fn verify_user(conn: &PgConnection, username: &str, password: &str) -> RbResult<User>
@@ -38,24 +37,4 @@ pub fn hash_password(password: &str) -> RbResult<String>
     let config = argon2::Config::default();
     argon2::hash_encoded(password.as_bytes(), &salt, &config)
         .map_err(|_| RbError::Custom("Couldn't hash password."))
-}
-
-pub fn create_admin_user(conn: &PgConnection, username: &str, password: &str) -> RbResult<bool>
-{
-    let pass_hashed = hash_password(password)?;
-    let new_user = NewUser {
-        username: username.to_string(),
-        password: pass_hashed,
-        admin: true,
-    };
-
-    insert_into(users::users)
-        .values(&new_user)
-        .on_conflict(users::username)
-        .do_update()
-        .set(&new_user)
-        .execute(conn)
-        .map_err(|_| RbError::Custom("Couldn't create admin."))?;
-
-    Ok(true)
 }

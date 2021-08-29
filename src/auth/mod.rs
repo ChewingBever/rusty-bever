@@ -5,7 +5,7 @@ use self::{
     jwt::{generate_jwt_token, JWTResponse},
     pass::verify_user,
 };
-use crate::{guards::User, RbDbConn, RbResult};
+use crate::{errors::RbResult, guards::User, RbDbConn};
 
 pub mod jwt;
 pub mod pass;
