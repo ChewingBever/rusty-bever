@@ -1,6 +1,6 @@
 use hmac::{Hmac, NewMac};
 use jwt::VerifyWithKey;
-use rb::auth::Claims;
+use rb::auth::jwt::Claims;
 use rocket::{
     http::Status,
     outcome::try_outcome,

@@ -79,6 +79,7 @@ impl<'r> Responder<'r, 'static> for RbError
             "message": self.message(),
         });
 
+        // TODO add status to response
         content.respond_to(req)
     }
 }
