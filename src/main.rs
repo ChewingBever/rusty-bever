@@ -8,9 +8,13 @@ extern crate diesel_migrations;
 #[macro_use]
 extern crate diesel;
 
+use figment::{
+    providers::{Env, Format, Yaml},
+    Figment,
+};
 use rocket::{fairing::AdHoc, Build, Rocket};
 use rocket_sync_db_pools::database;
-use figment::{Figment, providers::Env, providers::Yaml, providers::Format};
+use serde::{Deserialize, Serialize};
 
 mod admin;
 pub mod auth;
@@ -18,14 +22,6 @@ pub mod db;
 pub mod errors;
 pub mod guards;
 pub(crate) mod schema;
-
-// Any import defaults are defined here
-/// Expire time for the JWT tokens in seconds.
-const JWT_EXP_SECONDS: i64 = 600;
-/// Amount of bytes the refresh tokens should consist of
-const REFRESH_TOKEN_N_BYTES: usize = 64;
-/// Expire time for refresh tokens; here: one week
-const REFRESH_TOKEN_EXP_SECONDS: i64 = 604800;
 
 #[database("postgres_rb")]
 pub struct RbDbConn(diesel::PgConnection);
@@ -61,6 +57,22 @@ async fn create_admin_user(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocke
     Ok(rocket)
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct RbJwtConf
+{
+    key: String,
+    refresh_token_size: usize,
+    refresh_token_expire: i64,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RbConfig
+{
+    admin_user: String,
+    admin_pass: String,
+    jwt: RbJwtConf,
+}
+
 #[launch]
 fn rocket() -> _
 {
@@ -75,6 +87,7 @@ fn rocket() -> _
             run_db_migrations,
         ))
         .attach(AdHoc::try_on_ignite("Create admin user", create_admin_user))
+        .attach(AdHoc::config::<RbConfig>())
         .mount(
             "/api/auth",
             routes![auth::already_logged_in, auth::login, auth::refresh_token,],

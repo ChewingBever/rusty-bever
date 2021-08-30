@@ -12,7 +12,11 @@ debug:
 
   admin_user: "admin"
   admin_pass: "password"
-  jwt_key: "secret"
+  jwt:
+    key: "secret"
+    refresh_token_size: 64
+    # Just 5 seconds for debugging
+    refresh_token_expire: 5
 
   databases:
     postgres_rb:

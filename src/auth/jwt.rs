@@ -11,6 +11,7 @@ use crate::{
     db::{tokens::NewRefreshToken, users::User},
     errors::{RbError, RbResult},
     schema::{refresh_tokens::dsl as refresh_tokens, users::dsl as users},
+    RbJwtConf,
 };
 
 #[derive(Serialize)]
@@ -30,10 +31,13 @@ pub struct Claims
     pub exp: i64,
 }
 
-pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> RbResult<JWTResponse>
+pub fn generate_jwt_token(
+    conn: &PgConnection,
+    jwt: &RbJwtConf,
+    user: &User,
+) -> RbResult<JWTResponse>
 {
-    let secret = std::env::var("JWT_KEY").map_err(|_| RbError::Custom("Missing JWT key."))?;
-    let key: Hmac<Sha256> = Hmac::new_from_slice(secret.as_bytes())
+    let key: Hmac<Sha256> = Hmac::new_from_slice(jwt.key.as_bytes())
         .map_err(|_| RbError::Custom("Couldn't create Hmac key."))?;
 
     let current_time = Utc::now();
@@ -43,7 +47,7 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> RbResult<JWTRespo
         id: user.id,
         username: user.username.clone(),
         admin: user.admin,
-        exp: current_time.timestamp() + crate::JWT_EXP_SECONDS,
+        exp: current_time.timestamp() + jwt.refresh_token_expire,
     };
 
     // Sign the claims into a new token
@@ -52,11 +56,11 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> RbResult<JWTRespo
         .map_err(|_| RbError::Custom("Couldn't sign JWT."))?;
 
     // Generate a random refresh token
-    let mut refresh_token = [0u8; crate::REFRESH_TOKEN_N_BYTES];
+    let mut refresh_token = vec![0u8; jwt.refresh_token_size];
     thread_rng().fill(&mut refresh_token[..]);
 
     let refresh_expire =
-        (current_time + chrono::Duration::seconds(crate::REFRESH_TOKEN_EXP_SECONDS)).naive_utc();
+        (current_time + chrono::Duration::seconds(jwt.refresh_token_expire)).naive_utc();
 
     // Store refresh token in database
     db::tokens::create(
@@ -74,7 +78,11 @@ pub fn generate_jwt_token(conn: &PgConnection, user: &User) -> RbResult<JWTRespo
     })
 }
 
-pub fn refresh_token(conn: &PgConnection, refresh_token: &str) -> RbResult<JWTResponse>
+pub fn refresh_token(
+    conn: &PgConnection,
+    jwt: &RbJwtConf,
+    refresh_token: &str,
+) -> RbResult<JWTResponse>
 {
     let token_bytes =
         base64::decode(refresh_token).map_err(|_| RbError::AuthInvalidRefreshToken)?;
@@ -108,5 +116,5 @@ pub fn refresh_token(conn: &PgConnection, refresh_token: &str) -> RbResult<JWTRe
         .execute(conn)
         .map_err(|_| RbError::Custom("Couldn't update last used time."))?;
 
-    generate_jwt_token(conn, &user)
+    generate_jwt_token(conn, jwt, &user)
 }
