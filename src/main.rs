@@ -10,6 +10,7 @@ extern crate diesel;
 
 use rocket::{fairing::AdHoc, Build, Rocket};
 use rocket_sync_db_pools::database;
+use figment::{Figment, providers::Env, providers::Yaml, providers::Format};
 
 mod admin;
 pub mod auth;
@@ -63,7 +64,11 @@ async fn create_admin_user(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocke
 #[launch]
 fn rocket() -> _
 {
-    rocket::build()
+    let figment = Figment::from(rocket::config::Config::default())
+        .merge(Yaml::file("Rb.yaml").nested())
+        .merge(Env::prefixed("RB_").global());
+
+    rocket::custom(figment)
         .attach(RbDbConn::fairing())
         .attach(AdHoc::try_on_ignite(
             "Run database migrations",

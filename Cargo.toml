@@ -34,6 +34,8 @@ sha2 = "*"
 chrono = { version = "*", features = [ "serde" ] }
 # Encoding of refresh tokens
 base64 = "0.13.0"
+# Reading in configuration files
+figment = { version = "*", features = [ "yaml" ] }
 
 [profile.release]
 lto = true
