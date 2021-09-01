@@ -1,5 +1,3 @@
-use std::convert::From;
-
 use hmac::{Hmac, NewMac};
 use jwt::VerifyWithKey;
 use rocket::{
@@ -24,7 +22,7 @@ impl<'r> FromRequest<'r> for Bearer<'r>
     {
         // If the header isn't present, just forward to the next route
         let header = match req.headers().get_one("Authorization") {
-            None => return Outcome::Forward(()),
+            None => return Outcome::Failure((Status::BadRequest, Self::Error::AuthMissingHeader)),
             Some(val) => val,
         };
 
@@ -35,7 +33,7 @@ impl<'r> FromRequest<'r> for Bearer<'r>
         // Extract the jwt token from the header
         let auth_string = match header.get(7..) {
             Some(s) => s,
-            None => return Outcome::Forward(()),
+            None => return Outcome::Failure((Status::Unauthorized, Self::Error::AuthUnauthorized)),
         };
 
         Outcome::Success(Self(auth_string))
@@ -44,14 +42,6 @@ impl<'r> FromRequest<'r> for Bearer<'r>
 
 /// Verifies the provided JWT is valid.
 pub struct Jwt(Claims);
-
-impl From<()> for RbError
-{
-    fn from(_: ()) -> Self
-    {
-        RbError::Custom("Couldn't get config guard.")
-    }
-}
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Jwt
@@ -123,7 +113,7 @@ impl<'r> FromRequest<'r> for Admin
         if user.admin {
             Outcome::Success(Self(user))
         } else {
-            Outcome::Forward(())
+            Outcome::Failure((Status::Unauthorized, RbError::AuthUnauthorized))
         }
     }
 }

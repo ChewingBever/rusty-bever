@@ -16,6 +16,7 @@ pub enum RbError
     AuthRefreshTokenExpired,
     AuthInvalidRefreshToken,
     AuthDuplicateRefreshToken,
+    AuthMissingHeader,
 
     // UM = User Management
     UMDuplicateUser,
@@ -39,6 +40,7 @@ impl RbError
             RbError::AuthRefreshTokenExpired => Status::Unauthorized,
             RbError::AuthInvalidRefreshToken => Status::Unauthorized,
             RbError::AuthDuplicateRefreshToken => Status::Unauthorized,
+            RbError::AuthMissingHeader => Status::BadRequest,
 
             RbError::UMDuplicateUser => Status::Conflict,
 
@@ -60,6 +62,7 @@ impl RbError
             RbError::AuthDuplicateRefreshToken => {
                 "This refresh token has already been used. The user has been blocked."
             }
+            RbError::AuthMissingHeader => "Missing Authorization header.",
 
             RbError::UMDuplicateUser => "This user already exists.",
 

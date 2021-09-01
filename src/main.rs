@@ -12,7 +12,12 @@ use figment::{
     providers::{Env, Format, Yaml},
     Figment,
 };
-use rocket::{fairing::AdHoc, Build, Rocket};
+use rocket::{
+    fairing::AdHoc,
+    http::Status,
+    serde::json::{json, Value},
+    Build, Request, Rocket,
+};
 use rocket_sync_db_pools::database;
 use serde::{Deserialize, Serialize};
 
@@ -25,6 +30,12 @@ pub(crate) mod schema;
 
 #[database("postgres_rb")]
 pub struct RbDbConn(diesel::PgConnection);
+
+#[catch(default)]
+fn default_catcher(status: Status, _: &Request) -> Value
+{
+    json!({"status": status.code, "message": ""})
+}
 
 embed_migrations!();
 
@@ -88,6 +99,7 @@ fn rocket() -> _
         ))
         .attach(AdHoc::try_on_ignite("Create admin user", create_admin_user))
         .attach(AdHoc::config::<RbConfig>())
+        .register("/", catchers![default_catcher])
         .mount(
             "/api/auth",
             routes![auth::already_logged_in, auth::login, auth::refresh_token,],
