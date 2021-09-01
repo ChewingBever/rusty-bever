@@ -1,20 +1,16 @@
 use argon2::verify_encoded;
-use diesel::{prelude::*, PgConnection};
+use diesel::PgConnection;
 use rand::{thread_rng, Rng};
 
 use crate::{
-    db::users::User,
+    db,
     errors::{RbError, RbResult},
-    schema::users::dsl as users,
 };
 
-pub fn verify_user(conn: &PgConnection, username: &str, password: &str) -> RbResult<User>
+pub fn verify_user(conn: &PgConnection, username: &str, password: &str) -> RbResult<db::User>
 {
     // TODO handle non-"NotFound" Diesel errors accordingely
-    let user = users::users
-        .filter(users::username.eq(username))
-        .first::<User>(conn)
-        .map_err(|_| RbError::AuthUnknownUser)?;
+    let user = db::users::find_by_username(conn, username).map_err(|_| RbError::AuthUnknownUser)?;
 
     // Check if a user is blocked
     if user.blocked {

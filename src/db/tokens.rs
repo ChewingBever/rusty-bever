@@ -56,3 +56,17 @@ pub fn find_with_user(
         .map_err(|_| RbError::Custom("Couldn't get refresh token & user."))
         .ok()
 }
+
+pub fn update_last_used_at(
+    conn: &PgConnection,
+    token_: &[u8],
+    last_used_at_: chrono::NaiveDateTime,
+) -> RbResult<()>
+{
+    diesel::update(refresh_tokens.filter(token.eq(token_)))
+        .set(last_used_at.eq(last_used_at_))
+        .execute(conn)
+        .map_err(|_| RbError::DbError("Couldn't update last_used_at."))?;
+
+    Ok(())
+}

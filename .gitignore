@@ -16,3 +16,6 @@ out/
 # Added by cargo
 
 /target
+
+.vim/
+vendor/

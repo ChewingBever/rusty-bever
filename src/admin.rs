@@ -1,4 +1,4 @@
-use diesel::{insert_into, prelude::*, PgConnection};
+use diesel::PgConnection;
 use rocket::serde::json::Json;
 use uuid::Uuid;
 
@@ -7,7 +7,6 @@ use crate::{
     db,
     errors::{RbError, RbResult},
     guards::Admin,
-    schema::users::dsl as users,
     RbDbConn,
 };
 
@@ -49,12 +48,7 @@ pub fn create_admin_user(conn: &PgConnection, username: &str, password: &str) ->
         admin: true,
     };
 
-    insert_into(users::users)
-        .values(&new_user)
-        .on_conflict(users::username)
-        .do_update()
-        .set(&new_user)
-        .execute(conn)
+    db::users::create_or_update(conn, &new_user)
         .map_err(|_| RbError::Custom("Couldn't create admin."))?;
 
     Ok(true)

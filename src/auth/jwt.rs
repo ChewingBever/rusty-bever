@@ -1,5 +1,5 @@
 use chrono::Utc;
-use diesel::{prelude::*, PgConnection};
+use diesel::PgConnection;
 use hmac::{Hmac, NewMac};
 use jwt::SignWithKey;
 use rand::{thread_rng, Rng};
@@ -8,9 +8,7 @@ use sha2::Sha256;
 
 use crate::{
     db,
-    db::{tokens::NewRefreshToken, users::User},
     errors::{RbError, RbResult},
-    schema::{refresh_tokens::dsl as refresh_tokens, users::dsl as users},
     RbJwtConf,
 };
 
@@ -34,7 +32,7 @@ pub struct Claims
 pub fn generate_jwt_token(
     conn: &PgConnection,
     jwt: &RbJwtConf,
-    user: &User,
+    user: &db::User,
 ) -> RbResult<JWTResponse>
 {
     let key: Hmac<Sha256> = Hmac::new_from_slice(jwt.key.as_bytes())
@@ -65,7 +63,7 @@ pub fn generate_jwt_token(
     // Store refresh token in database
     db::tokens::create(
         conn,
-        &NewRefreshToken {
+        &db::NewRefreshToken {
             token: refresh_token.to_vec(),
             user_id: user.id,
             expires_at: refresh_expire,
@@ -93,11 +91,10 @@ pub fn refresh_token(
 
     // If we see that the token has already been used before, we block the user.
     if token_entry.last_used_at.is_some() {
-        let target = users::users.filter(users::id.eq(token_entry.user_id));
-        diesel::update(target)
-            .set(users::blocked.eq(true))
-            .execute(conn)
-            .map_err(|_| RbError::Custom("Couldn't block user."))?;
+        // If we fail to block the user, the end user must know
+        if let Err(err) = db::users::block(conn, token_entry.user_id) {
+            return Err(err);
+        }
 
         return Err(RbError::AuthDuplicateRefreshToken);
     }
@@ -110,11 +107,7 @@ pub fn refresh_token(
     }
 
     // We update the last_used_at value for the refresh token
-    let target = refresh_tokens::refresh_tokens.filter(refresh_tokens::token.eq(token_entry.token));
-    diesel::update(target)
-        .set(refresh_tokens::last_used_at.eq(cur_time))
-        .execute(conn)
-        .map_err(|_| RbError::Custom("Couldn't update last used time."))?;
+    db::tokens::update_last_used_at(conn, &token_entry.token, cur_time)?;
 
     generate_jwt_token(conn, jwt, &user)
 }

@@ -14,7 +14,6 @@ pub struct User
     pub username: String,
     #[serde(skip_serializing)]
     pub password: String,
-    #[serde(skip_serializing)]
     pub blocked: bool,
     pub admin: bool,
 }
@@ -40,6 +39,14 @@ pub fn find(conn: &PgConnection, user_id: Uuid) -> Option<User>
     users.find(user_id).first::<User>(conn).ok()
 }
 
+pub fn find_by_username(conn: &PgConnection, username_: &str) -> RbResult<User>
+{
+    Ok(users
+        .filter(username.eq(username_))
+        .first::<User>(conn)
+        .map_err(|_| RbError::DbError("Couldn't find users by username."))?)
+}
+
 pub fn create(conn: &PgConnection, new_user: &NewUser) -> RbResult<()>
 {
     let count = diesel::insert_into(users)
@@ -54,11 +61,34 @@ pub fn create(conn: &PgConnection, new_user: &NewUser) -> RbResult<()>
     Ok(())
 }
 
+pub fn create_or_update(conn: &PgConnection, new_user: &NewUser) -> RbResult<()>
+{
+    diesel::insert_into(users)
+        .values(new_user)
+        .on_conflict(username)
+        .do_update()
+        .set(new_user)
+        .execute(conn)
+        .map_err(|_| RbError::DbError("Couldn't create or update user."))?;
+
+    Ok(())
+}
+
 pub fn delete(conn: &PgConnection, user_id: Uuid) -> RbResult<()>
 {
     diesel::delete(users.filter(id.eq(user_id)))
         .execute(conn)
         .map_err(|_| RbError::DbError("Couldn't delete user."))?;
+
+    Ok(())
+}
+
+pub fn block(conn: &PgConnection, user_id: Uuid) -> RbResult<()>
+{
+    diesel::update(users.filter(id.eq(user_id)))
+        .set(blocked.eq(true))
+        .execute(conn)
+        .map_err(|_| RbError::DbError("Couldn't block user."))?;
 
     Ok(())
 }
