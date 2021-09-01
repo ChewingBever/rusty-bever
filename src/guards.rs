@@ -1,13 +1,16 @@
+use std::convert::From;
+
 use hmac::{Hmac, NewMac};
 use jwt::VerifyWithKey;
 use rocket::{
     http::Status,
     outcome::try_outcome,
     request::{FromRequest, Outcome, Request},
+    State,
 };
 use sha2::Sha256;
 
-use crate::auth::jwt::Claims;
+use crate::{auth::jwt::Claims, errors::RbError, RbConfig};
 
 /// Extracts a "Authorization: Bearer" string from the headers.
 pub struct Bearer<'a>(&'a str);
@@ -42,26 +45,28 @@ impl<'r> FromRequest<'r> for Bearer<'r>
 /// Verifies the provided JWT is valid.
 pub struct Jwt(Claims);
 
+impl From<()> for RbError
+{
+    fn from(_: ()) -> Self
+    {
+        RbError::Custom("Couldn't get config guard.")
+    }
+}
+
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Jwt
 {
-    type Error = crate::errors::RbError;
+    type Error = RbError;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>
     {
         let bearer = try_outcome!(req.guard::<Bearer>().await).0;
+        let config = try_outcome!(req.guard::<&State<RbConfig>>().await.map_failure(|_| (
+            Status::InternalServerError,
+            RbError::Custom("Couldn't get config guard.")
+        )));
 
-        // Get secret & key
-        let secret = match std::env::var("JWT_KEY") {
-            Ok(key) => key,
-            Err(_) => {
-                return Outcome::Failure((
-                    Status::InternalServerError,
-                    Self::Error::AuthUnauthorized,
-                ))
-            }
-        };
-        let key: Hmac<Sha256> = match Hmac::new_from_slice(secret.as_bytes()) {
+        let key: Hmac<Sha256> = match Hmac::new_from_slice(&config.jwt.key.as_bytes()) {
             Ok(key) => key,
             Err(_) => {
                 return Outcome::Failure((

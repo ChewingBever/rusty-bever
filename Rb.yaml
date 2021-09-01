@@ -16,7 +16,7 @@ debug:
     key: "secret"
     refresh_token_size: 64
     # Just 5 seconds for debugging
-    refresh_token_expire: 5
+    refresh_token_expire: 60
 
   databases:
     postgres_rb:
