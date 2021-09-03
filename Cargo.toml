@@ -36,8 +36,9 @@ chrono = { version = "*", features = [ "serde" ] }
 base64 = "0.13.0"
 # Reading in configuration files
 figment = { version = "*", features = [ "yaml" ] }
+mimalloc = { version = "0.1.26", default_features = false }
 
 [profile.release]
-lto = true
+lto = "fat"
 panic = "abort"
 codegen-units = 1

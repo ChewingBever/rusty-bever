@@ -28,6 +28,9 @@ pub mod errors;
 pub mod guards;
 pub(crate) mod schema;
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[database("postgres_rb")]
 pub struct RbDbConn(diesel::PgConnection);
 
