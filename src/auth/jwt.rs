@@ -99,6 +99,11 @@ pub fn refresh_token(
         return Err(RbError::AuthDuplicateRefreshToken);
     }
 
+    // Then we check if the user is blocked
+    if user.blocked {
+        return Err(RbError::AuthBlockedUser);
+    }
+
     // Now we check if the token has already expired
     let cur_time = Utc::now().naive_utc();
 

@@ -25,6 +25,7 @@ CORES       != nproc
 export CC=musl-gcc -fPIC -pie -static
 export LD_LIBRARY_PATH=$(PREFIX)
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+export PATH := /usr/local/bin:/root/.cargo/bin:$(PATH)
 
 
 # TODO check for header files (openssl-dev, libpq-dev) both for Arch & Ubuntu
@@ -37,14 +38,31 @@ $(shell mkdir -p "$(PREFIX)")
 .PHONY: all
 all: build
 
+.PHONY: docker
+docker:
+	docker run \
+		--rm \
+		-v "$$PWD:/usr/src" \
+		--workdir "/usr/src" \
+		-it \
+		rust:1.54 \
+		bash build.sh
+
+
 # libpq builds openssl as a dependency
 .PHONY: build
 build: libpq
 
 .PHONY: clean
 clean:
+	echo "$$PATH"
 	@ echo "Note: this only cleans the C dependencies, not the Cargo cache."
 	rm -rf "$(PQ_DIR)" "$(OPENSSL_DIR)" "$(DI_DIR)" "$(PREFIX)"
+
+# This is used inside the Dockerfile
+.PHONY: pathfile
+pathfile:
+	echo "$(PREFIX)/lib" >> /etc/ld-musl-x86_64.path
 
 
 # =====OPENSSL=====
@@ -53,7 +71,7 @@ $(OPENSSL_DIR)/Configure:
 	curl -sSL "https://www.openssl.org/source/openssl-$(SSL_VER).tar.gz" | \
 		tar -C "$(OUT_DIR)" -xz
 	cd "$(OPENSSL_DIR)" && \
-		CC="$$CC -idirafter /usr/include" ./Configure \
+		CC="$$CC -idirafter /usr/include -idirafter /usr/include/x86_64-linux-gnu/" ./Configure \
 			no-zlib \
 			no-shared \
 			--prefix="$(PREFIX)" \
@@ -63,7 +81,7 @@ $(OPENSSL_DIR)/Configure:
 # Build OpenSSL
 .PHONY: openssl
 openssl: $(OPENSSL_DIR)/Configure
-	C_INCLUDE_PATH="$(PREFIX)/include" $(MAKE) -C "$(OPENSSL_DIR)" depend
+	env C_INCLUDE_PATH="$(PREFIX)/include" $(MAKE) -C "$(OPENSSL_DIR)" depend
 	$(MAKE) -C "$(OPENSSL_DIR)" -j$(CORES)
 	$(MAKE) -C "$(OPENSSL_DIR)" install_sw
 

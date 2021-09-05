@@ -1,4 +1,13 @@
-.vim/
-out/
-vendor/
-target/
+*
+
+!Cargo.lock
+!Cargo.toml
+!Makefile
+!migrations
+!Rb.yaml
+!rustfmt.toml
+!src
+!tests
+!web
+
+web/node_modules
