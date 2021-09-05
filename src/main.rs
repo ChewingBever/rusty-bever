@@ -16,7 +16,7 @@ use rocket::{
     fairing::AdHoc,
     http::Status,
     serde::json::{json, Value},
-    Build, Request, Rocket,
+    Build, Request, Rocket, Orbit,
 };
 use rocket_sync_db_pools::database;
 use serde::{Deserialize, Serialize};
@@ -54,21 +54,20 @@ async fn run_db_migrations(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocke
     .await
 }
 
-async fn create_admin_user(rocket: Rocket<Build>) -> Result<Rocket<Build>, Rocket<Build>>
+async fn create_admin_user<'a>(rocket: &'a Rocket<Orbit>)
 {
-    let admin_user = std::env::var("ADMIN_USER").unwrap_or(String::from("admin"));
-    let admin_password = std::env::var("ADMIN_PASSWORD").unwrap_or(String::from("password"));
+    let config = rocket.state::<RbConfig>().expect("RbConfig instance");
+    let admin_user = config.admin_user.clone();
+    let admin_pass = config.admin_pass.clone();
 
     let conn = RbDbConn::get_one(&rocket)
         .await
         .expect("database connection");
     conn.run(move |c| {
-        admin::create_admin_user(c, &admin_user, &admin_password)
+        admin::create_admin_user(c, &admin_user, &admin_pass)
             .expect("failed to create admin user")
     })
     .await;
-
-    Ok(rocket)
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -100,7 +99,7 @@ fn rocket() -> _
             "Run database migrations",
             run_db_migrations,
         ))
-        .attach(AdHoc::try_on_ignite("Create admin user", create_admin_user))
+        // .attach(AdHoc::try_on_ignite("Create admin user", create_admin_user))
         .attach(AdHoc::config::<RbConfig>())
         .register("/", catchers![default_catcher])
         .mount(

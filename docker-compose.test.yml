@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  app:
+    build:
+      context: '.'
+      dockerfile: 'docker/test/Dockerfile'
+
+    image: 'rb-builder:1.54'
+    command: "${CMD}"
+
+    working_dir: "/usr/src/app"
+
+    volumes:
+      - '$PWD:/usr/src/app'
+      - 'cache:/usr/src/app/out'
+
+  db:
+    image: 'postgres:13-alpine'
+
+    environment:
+      - 'POSTGRES_DB=rb'
+      - 'POSTGRES_USER=rb'
+      - 'POSTGRES_PASSWORD=rb'
+
+volumes:
+  cache:

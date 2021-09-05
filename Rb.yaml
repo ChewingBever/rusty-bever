@@ -21,3 +21,15 @@ debug:
   databases:
     postgres_rb:
       url: "postgres://rb:rb@localhost:5432/rb"
+
+release:
+  admin_user: "admin"
+  admin_pass: "password"
+  jwt:
+    key: "secret"
+    refresh_token_size: 64
+    refresh_token_expire: 86400
+
+  databases:
+    postgres_rb:
+      url: "postgres://rb:rb@db:5432/rb"

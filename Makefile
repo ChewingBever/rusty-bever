@@ -22,9 +22,9 @@ CORES       != nproc
 
 
 # =====ENVIRONMENT VARIABLES=====
-export CC=musl-gcc -fPIC -pie -static
-export LD_LIBRARY_PATH=$(PREFIX)
-export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+export CC := musl-gcc -fPIC -pie -static
+export LD_LIBRARY_PATH := $(PREFIX)
+export PKG_CONFIG_PATH := /usr/local/lib/pkgconfig
 export PATH := /usr/local/bin:/root/.cargo/bin:$(PATH)
 
 
@@ -34,18 +34,23 @@ export PATH := /usr/local/bin:/root/.cargo/bin:$(PATH)
 $(shell mkdir -p "$(PREFIX)")
 
 
-# ====RECIPES====
+# =====BUILDING THE STATIC BINARY=====
 .PHONY: all
 all: build
 
+.PHONY: builder
+builder:
+	docker build \
+		-t rusty-builder:latest - < docker/Dockerfile.builder
+
 .PHONY: docker
-docker:
+docker: builder
 	docker run \
 		--rm \
 		-v "$$PWD:/usr/src" \
 		--workdir "/usr/src" \
 		-it \
-		rust:1.54 \
+		rusty-builder:latest \
 		bash build.sh
 
 
@@ -54,10 +59,9 @@ docker:
 build: libpq
 
 .PHONY: clean
-clean:
-	echo "$$PATH"
+clean: clean-openssl clean-libpq clean-di
 	@ echo "Note: this only cleans the C dependencies, not the Cargo cache."
-	rm -rf "$(PQ_DIR)" "$(OPENSSL_DIR)" "$(DI_DIR)" "$(PREFIX)"
+	rm -rf "$(PREFIX)"
 
 # This is used inside the Dockerfile
 .PHONY: pathfile
@@ -65,13 +69,13 @@ pathfile:
 	echo "$(PREFIX)/lib" >> /etc/ld-musl-x86_64.path
 
 
-# =====OPENSSL=====
+## =====OPENSSL=====
 # Download the source code & configure the project
 $(OPENSSL_DIR)/Configure:
 	curl -sSL "https://www.openssl.org/source/openssl-$(SSL_VER).tar.gz" | \
-		tar -C "$(OUT_DIR)" -xz
+		tar -xzC "$(OUT_DIR)"
 	cd "$(OPENSSL_DIR)" && \
-		CC="$$CC -idirafter /usr/include -idirafter /usr/include/x86_64-linux-gnu/" ./Configure \
+		CC="$(CC) -idirafter /usr/include -idirafter /usr/include/x86_64-linux-gnu/" ./Configure \
 			no-zlib \
 			no-shared \
 			--prefix="$(PREFIX)" \
@@ -81,16 +85,20 @@ $(OPENSSL_DIR)/Configure:
 # Build OpenSSL
 .PHONY: openssl
 openssl: $(OPENSSL_DIR)/Configure
-	env C_INCLUDE_PATH="$(PREFIX)/include" $(MAKE) -C "$(OPENSSL_DIR)" depend
-	$(MAKE) -C "$(OPENSSL_DIR)" -j$(CORES)
-	$(MAKE) -C "$(OPENSSL_DIR)" install_sw
+	cd "$(OPENSSL_DIR)" && env C_INCLUDE_PATH="$(PREFIX)/include" $(MAKE) depend 2> /dev/null
+	cd "$(OPENSSL_DIR)" && $(MAKE) -j$(CORES)
+	cd "$(OPENSSL_DIR)" && $(MAKE) install_sw
+
+.PHONY: clean-openssl
+clean-openssl:
+	rm -rf "$(OPENSSL_DIR)"
 
 
-# =====LIBPQ=====
+## =====LIBPQ=====
 # Download the source code & configure the project
 $(PQ_DIR)/configure:
 	curl -sSL "https://ftp.postgresql.org/pub/source/v$(PQ_VER)/postgresql-$(PQ_VER).tar.gz" | \
-		tar -C "$(OUT_DIR)" -xz
+		tar -xzC "$(OUT_DIR)"
 	cd "$(PQ_DIR)" && \
 		LDFLAGS="-L$(PREFIX)/lib" CFLAGS="-I$(PREFIX)/include" ./configure \
 			--without-readline \
@@ -101,10 +109,14 @@ $(PQ_DIR)/configure:
 
 .PHONY: libpq
 libpq: openssl $(PQ_DIR)/configure
-	make -C "$(PQ_DIR)/src/interfaces/libpq" -j$(CORES) all-static-lib
-	make -C "$(PQ_DIR)/src/interfaces/libpq" install install-lib-static
-	make -C "$(PQ_DIR)/src/bin/pg_config" -j $(CORES)
-	make -C "$(PQ_DIR)/src/bin/pg_config" install
+	cd "$(PQ_DIR)/src/interfaces/libpq" && $(MAKE) -j$(CORES) all-static-lib
+	cd "$(PQ_DIR)/src/interfaces/libpq" && $(MAKE) install install-lib-static
+	cd "$(PQ_DIR)/src/bin/pg_config" && $(MAKE) -j$(CORES)
+	cd "$(PQ_DIR)/src/bin/pg_config" && $(MAKE) install
+
+.PHONY: clean-libpq
+clean-libpq:
+	rm -rf "$(PQ_DIR)"
 
 
 # =====DUMB-INIT=====
@@ -113,6 +125,16 @@ $(DI_DIR)/Makefile:
 	curl -sSL "https://github.com/Yelp/dumb-init/archive/refs/tags/v$(DI_VER).tar.gz" | \
 		tar -C "$(OUT_DIR)" -xz
 
-.PHONY: dumb-init
-dumb-init: $(DI_DIR)/Makefile
+.PHONY: di
+di: $(DI_DIR)/Makefile
 	make -C "$(DI_DIR)" build
+
+.PHONY: clean-di
+clean-di:
+	rm -rf "$(DI_DIR)"
+
+
+# ====UTILITIES FOR DEVELOPMENT=====
+## The tests require a database, so we run them like this
+test:
+	docker-compose -f docker-compose.test.yml -p rb_test up
