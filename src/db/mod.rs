@@ -1,8 +1,8 @@
+pub mod posts;
+pub mod sections;
 pub mod tokens;
 pub mod users;
-pub mod sections;
-pub mod posts;
 
+pub use sections::{NewSection, Section};
 pub use tokens::{NewRefreshToken, RefreshToken};
 pub use users::{NewUser, User};
-pub use sections::{Section, NewSection};

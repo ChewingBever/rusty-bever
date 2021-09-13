@@ -61,7 +61,7 @@ impl RbError
             RbError::AuthInvalidRefreshToken => "This refresh token is not valid.",
             RbError::AuthDuplicateRefreshToken => {
                 "This refresh token has already been used. The user has been blocked."
-            }
+            },
             RbError::AuthMissingHeader => "Missing Authorization header.",
 
             RbError::UMDuplicateUser => "This user already exists.",

@@ -21,3 +21,24 @@ debug:
   databases:
     postgres_rb:
       url: "postgres://rb:rb@localhost:5432/rb"
+
+# This config is just used for testing, you should change it when deploying
+release:
+  keep_alive: 5
+  read_timeout: 5
+  write_timeout: 5
+  log_level: "normal"
+  limits:
+    forms: 32768
+
+  admin_user: "admin"
+  admin_pass: "password"
+  jwt:
+    key: "secret"
+    refresh_token_size: 64
+    # Just 5 seconds for debugging
+    refresh_token_expire: 60
+
+  databases:
+    postgres_rb:
+      url: "postgres://rb:rb@localhost:5432/rb"

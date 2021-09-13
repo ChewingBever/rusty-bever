@@ -2,7 +2,7 @@ import requests
 
 
 class RbClient:
-    def __init__(self, username, password, base_url = "http://localhost:8000/api"):
+    def __init__(self, username = "admin", password = "password", base_url = "http://localhost:8000/api"):
         self.username = username
         self.password = password
         self.base_url = base_url
@@ -17,6 +17,7 @@ class RbClient:
         })
 
         if r.status_code != 200:
+            print(r.text)
             raise Exception("Couldn't login")
 
         res = r.json()
@@ -56,9 +57,15 @@ class RbClient:
     def get(self, url, *args, **kwargs):
         return self._request("GET", f"{self.base_url}{url}", *args, **kwargs)
 
+    def post(self, url, *args, **kwargs):
+        return self._request("POST", f"{self.base_url}{url}", *args, **kwargs)
+
 
 
 if __name__ == "__main__":
-    client = RbClient("admin", "password")
+    client = RbClient()
 
-    print(client.get("/admin/users").json())
+    # print(client.get("/admin/users").json())
+    client.post("/sections", json={
+        "title": "this is a title"
+    })

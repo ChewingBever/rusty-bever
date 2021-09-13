@@ -1,4 +1,5 @@
 use diesel::{insert_into, prelude::*, Insertable, PgConnection, Queryable};
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
@@ -16,19 +17,22 @@ pub struct Section
     pub has_titles: bool,
 }
 
-#[derive(Insertable)]
+#[derive(Deserialize, Insertable)]
 #[table_name = "sections"]
+// #[serde(rename_all = "camelCase")]
 pub struct NewSection
 {
     title: String,
     description: Option<String>,
-    is_default: bool,
-    has_titles: bool,
+    is_default: Option<bool>,
+    has_titles: Option<bool>,
 }
 
 pub fn all(conn: &PgConnection) -> RbResult<Vec<Section>>
 {
-    sections.load::<Section>(conn).map_err(|_| RbError::DbError("Couldn't get all sections"))
+    sections
+        .load::<Section>(conn)
+        .map_err(|_| RbError::DbError("Couldn't get all sections"))
 }
 
 pub fn create(conn: &PgConnection, new_section: &NewSection) -> RbResult<()>

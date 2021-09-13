@@ -27,6 +27,7 @@ pub mod db;
 pub mod errors;
 pub mod guards;
 pub(crate) mod schema;
+pub mod sections;
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -111,4 +112,5 @@ fn rocket() -> _
             "/api/admin",
             routes![admin::get_users, admin::create_user, admin::get_user_info],
         )
+        .mount("/api/sections", routes![sections::create_section])
 }

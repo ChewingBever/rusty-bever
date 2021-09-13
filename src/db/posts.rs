@@ -1,6 +1,6 @@
+use chrono::NaiveDate;
 use diesel::{insert_into, prelude::*, Insertable, PgConnection, Queryable};
 use uuid::Uuid;
-use chrono::NaiveDate;
 
 use crate::{
     errors::{RbError, RbResult},
@@ -28,7 +28,9 @@ pub struct NewPost
 
 pub fn all(conn: &PgConnection) -> RbResult<Vec<Post>>
 {
-    posts.load::<Post>(conn).map_err(|_| RbError::DbError("Couldn't get all posts."))
+    posts
+        .load::<Post>(conn)
+        .map_err(|_| RbError::DbError("Couldn't get all posts."))
 }
 
 pub fn create(conn: &PgConnection, new_post: &NewPost) -> RbResult<()>
