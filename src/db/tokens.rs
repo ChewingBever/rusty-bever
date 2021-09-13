@@ -36,7 +36,7 @@ pub fn create(conn: &PgConnection, new_refresh_token: &NewRefreshToken) -> RbRes
     insert_into(refresh_tokens)
         .values(new_refresh_token)
         .execute(conn)
-        .map_err(|_| RbError::Custom("Couldn't insert refresh token."))?;
+        .map_err(|_| RbError::DbError("Couldn't insert refresh token."))?;
 
     // TODO check for conflict?
 
@@ -53,7 +53,7 @@ pub fn find_with_user(
         .inner_join(crate::schema::users::dsl::users)
         .filter(token.eq(token_val))
         .first::<(RefreshToken, super::users::User)>(conn)
-        .map_err(|_| RbError::Custom("Couldn't get refresh token & user."))
+        .map_err(|_| RbError::DbError("Couldn't get refresh token & user."))
         .ok()
 }
 
