@@ -1,3 +1,5 @@
+//! Handles refresh token-related database operations.
+
 use diesel::{insert_into, prelude::*, Insertable, PgConnection, Queryable};
 use uuid::Uuid;
 
@@ -6,6 +8,7 @@ use crate::{
     schema::{refresh_tokens, refresh_tokens::dsl::*},
 };
 
+/// A refresh token as stored in the database
 #[derive(Queryable)]
 pub struct RefreshToken
 {
@@ -15,6 +18,7 @@ pub struct RefreshToken
     pub last_used_at: Option<chrono::NaiveDateTime>,
 }
 
+/// A new refresh token to be added into the database
 #[derive(Insertable)]
 #[table_name = "refresh_tokens"]
 pub struct NewRefreshToken
@@ -24,6 +28,12 @@ pub struct NewRefreshToken
     pub expires_at: chrono::NaiveDateTime,
 }
 
+// TODO add pagination as this could grow very quickly
+/// Returns all refresh tokens contained in the database.
+///
+/// # Arguments
+///
+/// * `conn` - database connection to use
 pub fn all(conn: &PgConnection) -> RbResult<Vec<RefreshToken>>
 {
     refresh_tokens
@@ -31,6 +41,12 @@ pub fn all(conn: &PgConnection) -> RbResult<Vec<RefreshToken>>
         .map_err(|_| RbError::DbError("Couldn't get all refresh tokens."))
 }
 
+/// Insert a new refresh token into the database.
+///
+/// # Arguments
+///
+/// * `conn` - database connection to use
+/// * `new_refresh_token` - token to insert
 pub fn create(conn: &PgConnection, new_refresh_token: &NewRefreshToken) -> RbResult<()>
 {
     insert_into(refresh_tokens)
@@ -43,6 +59,12 @@ pub fn create(conn: &PgConnection, new_refresh_token: &NewRefreshToken) -> RbRes
     Ok(())
 }
 
+/// Returns the token & user data associated with the given refresh token value.
+///
+/// # Arguments
+///
+/// * `conn` - database connection to use
+/// * `token_val` - token value to search for
 pub fn find_with_user(
     conn: &PgConnection,
     token_val: &[u8],
@@ -57,6 +79,16 @@ pub fn find_with_user(
         .ok()
 }
 
+/// Updates a token's `last_used_at` column value.
+///
+/// # Arguments
+///
+/// * `conn` - database connection to use
+/// * `token_` - value of the refresh token to update
+/// * `last_used_at_` - date value to update column with
+///
+/// **NOTE**: argument names use trailing underscores as to not conflict with Diesel's imported dsl
+/// names.
 pub fn update_last_used_at(
     conn: &PgConnection,
     token_: &[u8],
