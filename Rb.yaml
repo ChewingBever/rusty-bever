@@ -23,13 +23,21 @@ debug:
       url: "postgres://rb:rb@localhost:5432/rb"
 
 release:
+  keep_alive: 5
+  read_timeout: 5
+  write_timeout: 5
+  log_level: "normal"
+  limits:
+    forms: 32768
+
   admin_user: "admin"
   admin_pass: "password"
   jwt:
     key: "secret"
     refresh_token_size: 64
-    refresh_token_expire: 86400
+    # Just 5 seconds for debugging
+    refresh_token_expire: 60
 
   databases:
     postgres_rb:
-      url: "postgres://rb:rb@db:5432/rb"
+      url: "postgres://rb:rb@localhost:5432/rb"

@@ -10,7 +10,7 @@ use sha2::Sha256;
 
 use crate::{auth::jwt::Claims, errors::RbError, RbConfig};
 
-/// Extracts a "Authorization: Bearer" string from the headers.
+/// Extracts an "Authorization: Bearer" string from the headers.
 pub struct Bearer<'a>(&'a str);
 
 #[rocket::async_trait]
@@ -22,7 +22,7 @@ impl<'r> FromRequest<'r> for Bearer<'r>
     {
         // If the header isn't present, just forward to the next route
         let header = match req.headers().get_one("Authorization") {
-            None => return Outcome::Failure((Status::BadRequest, Self::Error::AuthMissingHeader)),
+            None => return Outcome::Forward(()),
             Some(val) => val,
         };
 
@@ -31,12 +31,10 @@ impl<'r> FromRequest<'r> for Bearer<'r>
         }
 
         // Extract the jwt token from the header
-        let auth_string = match header.get(7..) {
-            Some(s) => s,
-            None => return Outcome::Failure((Status::Unauthorized, Self::Error::AuthUnauthorized)),
-        };
-
-        Outcome::Success(Self(auth_string))
+        match header.get(7..) {
+            Some(s) => Outcome::Success(Self(s)),
+            None => Outcome::Failure((Status::Unauthorized, Self::Error::AuthUnauthorized)),
+        }
     }
 }
 
@@ -63,14 +61,14 @@ impl<'r> FromRequest<'r> for Jwt
                     Status::InternalServerError,
                     Self::Error::Custom("Failed to do Hmac thing."),
                 ))
-            }
+            },
         };
         // Verify token using key
         let claims: Claims = match bearer.verify_with_key(&key) {
             Ok(claims) => claims,
             Err(_) => {
                 return Outcome::Failure((Status::Unauthorized, Self::Error::AuthUnauthorized))
-            }
+            },
         };
 
         Outcome::Success(Self(claims))
