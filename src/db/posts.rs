@@ -1,5 +1,3 @@
-//! Handles all posts-related database operations.
-
 use chrono::NaiveDate;
 use diesel::{insert_into, prelude::*, Insertable, PgConnection, Queryable};
 use uuid::Uuid;
@@ -9,7 +7,6 @@ use crate::{
     schema::{posts, posts::dsl::*},
 };
 
-/// Represents a post contained within the database.
 #[derive(Queryable)]
 pub struct Post
 {
@@ -20,7 +17,6 @@ pub struct Post
     pub content: String,
 }
 
-/// Represents a new post to be added to the database.
 #[derive(Insertable)]
 #[table_name = "posts"]
 pub struct NewPost

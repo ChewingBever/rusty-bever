@@ -23,7 +23,7 @@ pub struct Section
 /// A new section to be added into the database.
 #[derive(Deserialize, Insertable)]
 #[table_name = "sections"]
-// #[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct NewSection
 {
     title: String,
