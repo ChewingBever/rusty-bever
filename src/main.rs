@@ -16,7 +16,7 @@ use rocket::{
     fairing::AdHoc,
     http::Status,
     serde::json::{json, Value},
-    Build, Request, Rocket, Orbit,
+    Build, Orbit, Request, Rocket,
 };
 use rocket_sync_db_pools::database;
 use serde::{Deserialize, Serialize};
@@ -65,8 +65,7 @@ async fn create_admin_user<'a>(rocket: &'a Rocket<Orbit>)
         .await
         .expect("database connection");
     conn.run(move |c| {
-        admin::create_admin_user(c, &admin_user, &admin_pass)
-            .expect("failed to create admin user")
+        admin::create_admin_user(c, &admin_user, &admin_pass).expect("failed to create admin user")
     })
     .await;
 }

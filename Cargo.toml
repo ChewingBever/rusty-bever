@@ -8,6 +8,11 @@ edition = "2018"
 name = "rbd"
 path = "src/main.rs"
 
+[features]
+web = []
+docs = []
+static = ["web", "docs"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

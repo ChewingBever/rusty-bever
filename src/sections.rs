@@ -5,7 +5,7 @@ use rocket::serde::json::Json;
 use crate::{db, errors::RbResult, guards::Admin, RbDbConn};
 
 /// Route for creating a new section.
-/// 
+///
 /// # Arguments
 ///
 /// * `_admin` - guard ensuring user is admin
