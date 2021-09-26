@@ -26,14 +26,13 @@ impl<'r> FromRequest<'r> for Bearer<'r>
             Some(val) => val,
         };
 
-        if !header.starts_with("Bearer ") {
-            return Outcome::Forward(());
-        }
-
-        // Extract the jwt token from the header
-        match header.get(7..) {
-            Some(s) => Outcome::Success(Self(s)),
-            None => Outcome::Failure((Status::Unauthorized, Self::Error::AuthUnauthorized)),
+        if header.starts_with("Bearer ") {
+            match header.get(7..) {
+                Some(s) => Outcome::Success(Self(s)),
+                None => Outcome::Failure((Status::Unauthorized, Self::Error::AuthUnauthorized)),
+            }
+        } else {
+            Outcome::Forward(())
         }
     }
 }
@@ -63,15 +62,14 @@ impl<'r> FromRequest<'r> for Jwt
                 ))
             },
         };
+
         // Verify token using key
-        let claims: Claims = match bearer.verify_with_key(&key) {
-            Ok(claims) => claims,
+        match bearer.verify_with_key(&key) {
+            Ok(claims) => Outcome::Success(Self(claims)),
             Err(_) => {
                 return Outcome::Failure((Status::Unauthorized, Self::Error::AuthUnauthorized))
             },
-        };
-
-        Outcome::Success(Self(claims))
+        }
     }
 }
 
@@ -89,10 +87,10 @@ impl<'r> FromRequest<'r> for User
 
         // Verify key hasn't yet expired
         if chrono::Utc::now().timestamp() > claims.exp {
-            return Outcome::Failure((Status::Forbidden, Self::Error::AuthTokenExpired));
+            Outcome::Failure((Status::Forbidden, Self::Error::AuthTokenExpired))
+        } else {
+            Outcome::Success(Self(claims))
         }
-
-        Outcome::Success(Self(claims))
     }
 }
 
