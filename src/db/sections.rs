@@ -1,7 +1,5 @@
-//! Handles all section-related database operations.
-
 use diesel::{insert_into, prelude::*, Insertable, PgConnection, Queryable};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
@@ -9,8 +7,7 @@ use crate::{
     schema::{sections, sections::dsl::*},
 };
 
-/// Represents a section contained in the database.
-#[derive(Queryable)]
+#[derive(Queryable, Serialize)]
 pub struct Section
 {
     pub id: Uuid,
@@ -20,7 +17,6 @@ pub struct Section
     pub has_titles: bool,
 }
 
-/// A new section to be added into the database.
 #[derive(Deserialize, Insertable)]
 #[table_name = "sections"]
 #[serde(rename_all = "camelCase")]
@@ -32,32 +28,49 @@ pub struct NewSection
     has_titles: Option<bool>,
 }
 
-/// Returns all sections in the database.
-///
-/// # Arguments
-///
-/// * `conn` - reference to a database connection
-pub fn all(conn: &PgConnection) -> RbResult<Vec<Section>>
+#[derive(Deserialize, AsChangeset)]
+#[table_name = "sections"]
+#[serde(rename_all = "camelCase")]
+pub struct PatchSection
 {
-    sections
-        .load::<Section>(conn)
-        .map_err(|_| RbError::DbError("Couldn't get all sections"))
+    title: Option<String>,
+    description: Option<String>,
+    is_default: Option<bool>,
+    has_titles: Option<bool>,
 }
 
-/// Inserts a new section into the database.
-///
-/// # Arguments
-///
-/// * `conn` - reference to a database connection
-/// * `new_section` - the new section to be added
-pub fn create(conn: &PgConnection, new_section: &NewSection) -> RbResult<()>
+pub fn get(conn: &PgConnection, offset_: u32, limit_: u32) -> RbResult<Vec<Section>>
 {
-    insert_into(sections)
-        .values(new_section)
-        .execute(conn)
-        .map_err(|_| RbError::DbError("Couldn't insert section."))?;
+    Ok(sections
+        .offset(offset_.into())
+        .limit(limit_.into())
+        .load::<Section>(conn)
+        .map_err(|_| RbError::DbError("Couldn't query sections."))?)
+}
+
+pub fn create(conn: &PgConnection, new_post: &NewSection) -> RbResult<Section>
+{
+    Ok(insert_into(sections)
+        .values(new_post)
+        .get_result::<Section>(conn)
+        .map_err(|_| RbError::DbError("Couldn't insert section."))?)
 
     // TODO check for conflict?
+}
+
+pub fn update(conn: &PgConnection, post_id: &Uuid, patch_post: &PatchSection) -> RbResult<Section>
+{
+    Ok(diesel::update(sections.filter(id.eq(post_id)))
+        .set(patch_post)
+        .get_result::<Section>(conn)
+        .map_err(|_| RbError::DbError("Couldn't update section."))?)
+}
+
+pub fn delete(conn: &PgConnection, post_id: &Uuid) -> RbResult<()>
+{
+    diesel::delete(sections.filter(id.eq(post_id)))
+        .execute(conn)
+        .map_err(|_| RbError::DbError("Couldn't delete section."))?;
 
     Ok(())
 }

@@ -18,8 +18,9 @@ pub struct Post
     pub content: String,
 }
 
-#[derive(Insertable)]
+#[derive(Deserialize, Insertable)]
 #[table_name = "posts"]
+#[serde(rename_all = "camelCase")]
 pub struct NewPost
 {
     pub section_id: Uuid,
@@ -32,7 +33,6 @@ pub struct NewPost
 #[table_name = "posts"]
 pub struct PatchPost
 {
-    pub id: Option<Uuid>,
     pub section_id: Option<Uuid>,
     pub title: Option<String>,
     pub publish_date: Option<NaiveDate>,
@@ -48,12 +48,6 @@ pub fn get(conn: &PgConnection, offset_: u32, limit_: u32) -> RbResult<Vec<Post>
         .map_err(|_| RbError::DbError("Couldn't query posts."))?)
 }
 
-/// Insert a new post into the database.
-///
-/// # Arguments
-///
-/// * `conn` - reference to a database connection
-/// * `new_post` - the new post object to insert
 pub fn create(conn: &PgConnection, new_post: &NewPost) -> RbResult<Post>
 {
     Ok(insert_into(posts)
@@ -64,15 +58,15 @@ pub fn create(conn: &PgConnection, new_post: &NewPost) -> RbResult<Post>
     // TODO check for conflict?
 }
 
-pub fn update(conn: &PgConnection, post: &PatchPost) -> RbResult<Post>
+pub fn update(conn: &PgConnection, post_id: &Uuid, patch_post: &PatchPost) -> RbResult<Post>
 {
-    Ok(diesel::update(posts)
-        .set(post)
+    Ok(diesel::update(posts.filter(id.eq(post_id)))
+        .set(patch_post)
         .get_result::<Post>(conn)
         .map_err(|_| RbError::DbError("Couldn't update post."))?)
 }
 
-pub fn delete(conn: &PgConnection, post_id: Uuid) -> RbResult<()>
+pub fn delete(conn: &PgConnection, post_id: &Uuid) -> RbResult<()>
 {
     diesel::delete(posts.filter(id.eq(post_id)))
         .execute(conn)
