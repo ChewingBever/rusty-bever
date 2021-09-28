@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use diesel::{insert_into, prelude::*, Insertable, PgConnection, Queryable};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
@@ -8,7 +8,7 @@ use crate::{
     schema::{posts, posts::dsl::*},
 };
 
-#[derive(Queryable)]
+#[derive(Queryable, Serialize)]
 pub struct Post
 {
     pub id: Uuid,

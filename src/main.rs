@@ -26,6 +26,7 @@ pub mod auth;
 pub mod db;
 pub mod errors;
 pub mod guards;
+pub mod posts;
 pub(crate) mod schema;
 pub mod sections;
 
