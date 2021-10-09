@@ -4,10 +4,23 @@ import { ref } from 'vue'
 defineProps<{ msg: string }>()
 
 const count = ref(0)
+let test = ref("yeet")
+
+fetch("/api/users").then(
+    res => {
+        if (!res.ok) return Promise.reject()
+
+        return res.json()
+    }
+).then(
+    json => test.value = json
+)
 </script>
 
 <template>
   <h1>{{ msg }}</h1>
+
+  <p>{{ test }}</p>
 
   <p>
     Recommended IDE setup:

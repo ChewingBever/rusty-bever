@@ -4,6 +4,8 @@ create table sections (
 
     -- Title of the section
     title varchar(255) UNIQUE NOT NULL,
+    -- Name to use when routing (this just makes for prettier URLs)
+    shortname varchar(32) UNIQUE NOT NULL,
     -- Optional description of the section
     description text,
     -- Wether to show the section in the default list on the homepage
