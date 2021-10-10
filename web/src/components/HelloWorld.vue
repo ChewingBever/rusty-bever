@@ -8,7 +8,10 @@ let test = ref("yeet")
 
 fetch("/api/users").then(
     res => {
-        if (!res.ok) return Promise.reject()
+        if (!res.ok) {
+            console.log("ah chucks")
+            return Promise.reject()
+        }
 
         return res.json()
     }
