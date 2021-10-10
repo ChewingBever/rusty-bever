@@ -44,7 +44,7 @@ pub fn get(conn: &PgConnection, offset_: u32, limit_: u32) -> RbResult<Vec<Secti
     Ok(sections
         .offset(offset_.into())
         .limit(limit_.into())
-        .load::<Section>(conn)
+        .load(conn)
         .map_err(|_| RbError::DbError("Couldn't query sections."))?)
 }
 
@@ -52,7 +52,7 @@ pub fn create(conn: &PgConnection, new_post: &NewSection) -> RbResult<Section>
 {
     Ok(insert_into(sections)
         .values(new_post)
-        .get_result::<Section>(conn)
+        .get_result(conn)
         .map_err(|_| RbError::DbError("Couldn't insert section."))?)
 
     // TODO check for conflict?
@@ -62,7 +62,7 @@ pub fn update(conn: &PgConnection, post_id: &Uuid, patch_post: &PatchSection) ->
 {
     Ok(diesel::update(sections.filter(id.eq(post_id)))
         .set(patch_post)
-        .get_result::<Section>(conn)
+        .get_result(conn)
         .map_err(|_| RbError::DbError("Couldn't update section."))?)
 }
 

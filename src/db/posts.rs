@@ -52,7 +52,7 @@ pub fn create(conn: &PgConnection, new_post: &NewPost) -> RbResult<Post>
 {
     Ok(insert_into(posts)
         .values(new_post)
-        .get_result::<Post>(conn)
+        .get_result(conn)
         .map_err(|_| RbError::DbError("Couldn't insert post."))?)
 
     // TODO check for conflict?
@@ -62,7 +62,7 @@ pub fn update(conn: &PgConnection, post_id: &Uuid, patch_post: &PatchPost) -> Rb
 {
     Ok(diesel::update(posts.filter(id.eq(post_id)))
         .set(patch_post)
-        .get_result::<Post>(conn)
+        .get_result(conn)
         .map_err(|_| RbError::DbError("Couldn't update post."))?)
 }
 

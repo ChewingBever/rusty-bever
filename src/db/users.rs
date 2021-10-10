@@ -1,5 +1,3 @@
-//! Handles user-related database operations.
-
 use diesel::{prelude::*, AsChangeset, Insertable, Queryable};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -9,7 +7,6 @@ use crate::{
     schema::{users, users::dsl::*},
 };
 
-/// A user as stored in the database.
 #[derive(Queryable, Serialize)]
 pub struct User
 {
@@ -21,8 +18,7 @@ pub struct User
     pub admin: bool,
 }
 
-/// A new user to add to the database.
-#[derive(Insertable, AsChangeset, Deserialize)]
+#[derive(Insertable, Deserialize)]
 #[table_name = "users"]
 pub struct NewUser
 {
@@ -31,35 +27,29 @@ pub struct NewUser
     pub admin: bool,
 }
 
-/// Returns all users in the database.
-///
-/// # Arguments
-///
-/// * `conn` - database connection to use
-pub fn all(conn: &PgConnection) -> RbResult<Vec<User>>
+#[derive(Deserialize, AsChangeset)]
+#[table_name = "users"]
+#[serde(rename_all = "camelCase")]
+pub struct PatchSection
 {
-    users
-        .load::<User>(conn)
-        .map_err(|_| RbError::DbError("Couldn't get all users."))
+    username: Option<String>,
+    admin: Option<bool>,
 }
 
-/// Find a user with a given ID.
-///
-/// # Arguments
-///
-/// * `conn` - database connection to use
-/// * `user_id` - ID to search for
+pub fn get(conn: &PgConnection, offset_: u32, limit_: u32) -> RbResult<Vec<User>>
+{
+    Ok(users
+        .offset(offset_.into())
+        .limit(limit_.into())
+        .load(conn)
+        .map_err(|_| RbError::DbError("Couldn't query users."))?)
+}
+
 pub fn find(conn: &PgConnection, user_id: Uuid) -> Option<User>
 {
     users.find(user_id).first::<User>(conn).ok()
 }
 
-/// Find a user with a given username.
-///
-/// # Arguments
-///
-/// * `conn` - database connection to use
-/// * `username_` - username to search for
 pub fn find_by_username(conn: &PgConnection, username_: &str) -> RbResult<User>
 {
     Ok(users
@@ -94,18 +84,18 @@ pub fn create(conn: &PgConnection, new_user: &NewUser) -> RbResult<()>
 ///
 /// * `conn` - database connection to use
 /// * `new_user` - user to insert/update
-pub fn create_or_update(conn: &PgConnection, new_user: &NewUser) -> RbResult<()>
-{
-    diesel::insert_into(users)
-        .values(new_user)
-        .on_conflict(username)
-        .do_update()
-        .set(new_user)
-        .execute(conn)
-        .map_err(|_| RbError::DbError("Couldn't create or update user."))?;
+// pub fn create_or_update(conn: &PgConnection, new_user: &NewUser) -> RbResult<()>
+// {
+//     diesel::insert_into(users)
+//         .values(new_user)
+//         .on_conflict(username)
+//         .do_update()
+//         .set(new_user)
+//         .execute(conn)
+//         .map_err(|_| RbError::DbError("Couldn't create or update user."))?;
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 /// Delete the user with the given ID.
 ///

@@ -2,6 +2,7 @@
 
 use diesel::{insert_into, prelude::*, Insertable, PgConnection, Queryable};
 use uuid::Uuid;
+use serde::{Serialize, Deserialize};
 
 use crate::{
     errors::{RbError, RbResult},
@@ -9,7 +10,7 @@ use crate::{
 };
 
 /// A refresh token as stored in the database
-#[derive(Queryable)]
+#[derive(Queryable, Serialize)]
 pub struct RefreshToken
 {
     pub token: Vec<u8>,
@@ -19,7 +20,7 @@ pub struct RefreshToken
 }
 
 /// A new refresh token to be added into the database
-#[derive(Insertable)]
+#[derive(Deserialize, Insertable)]
 #[table_name = "refresh_tokens"]
 pub struct NewRefreshToken
 {
@@ -28,33 +29,46 @@ pub struct NewRefreshToken
     pub expires_at: chrono::NaiveDateTime,
 }
 
-// TODO add pagination as this could grow very quickly
-/// Returns all refresh tokens contained in the database.
-///
-/// # Arguments
-///
-/// * `conn` - database connection to use
-pub fn all(conn: &PgConnection) -> RbResult<Vec<RefreshToken>>
+#[derive(Deserialize, AsChangeset)]
+#[table_name = "refresh_tokens"]
+pub struct PatchRefreshToken
 {
-    refresh_tokens
-        .load::<RefreshToken>(conn)
-        .map_err(|_| RbError::DbError("Couldn't get all refresh tokens."))
+    pub expires_at: Option<chrono::NaiveDateTime>,
+    pub last_used_at: Option<chrono::NaiveDateTime>,
 }
 
-/// Insert a new refresh token into the database.
-///
-/// # Arguments
-///
-/// * `conn` - database connection to use
-/// * `new_refresh_token` - token to insert
-pub fn create(conn: &PgConnection, new_refresh_token: &NewRefreshToken) -> RbResult<()>
+pub fn get(conn: &PgConnection, offset_: u32, limit_: u32) -> RbResult<Vec<RefreshToken>>
 {
-    insert_into(refresh_tokens)
-        .values(new_refresh_token)
-        .execute(conn)
-        .map_err(|_| RbError::DbError("Couldn't insert refresh token."))?;
+    Ok(refresh_tokens
+        .offset(offset_.into())
+        .limit(limit_.into())
+        .load(conn)
+        .map_err(|_| RbError::DbError("Couldn't query tokens."))?)
+}
+
+pub fn create(conn: &PgConnection, new_token: &NewRefreshToken) -> RbResult<RefreshToken>
+{
+    Ok(insert_into(refresh_tokens)
+        .values(new_token)
+        .get_result(conn)
+        .map_err(|_| RbError::DbError("Couldn't insert refresh token."))?)
 
     // TODO check for conflict?
+}
+
+pub fn update(conn: &PgConnection, token_: &[u8], patch_token: &PatchRefreshToken) -> RbResult<RefreshToken>
+{
+    Ok(diesel::update(refresh_tokens.filter(token.eq(token_)))
+        .set(patch_token)
+        .get_result(conn)
+        .map_err(|_| RbError::DbError("Couldn't update token."))?)
+}
+
+pub fn delete(conn: &PgConnection, token_: &[u8]) -> RbResult<()>
+{
+    diesel::delete(refresh_tokens.filter(token.eq(token_)))
+        .execute(conn)
+        .map_err(|_| RbError::DbError("Couldn't delete token."))?;
 
     Ok(())
 }
@@ -67,13 +81,13 @@ pub fn create(conn: &PgConnection, new_refresh_token: &NewRefreshToken) -> RbRes
 /// * `token_val` - token value to search for
 pub fn find_with_user(
     conn: &PgConnection,
-    token_val: &[u8],
+    token_: &[u8],
 ) -> Option<(RefreshToken, super::users::User)>
 {
     // TODO actually check for errors here
     refresh_tokens
         .inner_join(crate::schema::users::dsl::users)
-        .filter(token.eq(token_val))
+        .filter(token.eq(token_))
         .first::<(RefreshToken, super::users::User)>(conn)
         .map_err(|_| RbError::DbError("Couldn't get refresh token & user."))
         .ok()
