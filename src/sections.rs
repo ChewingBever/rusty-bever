@@ -18,7 +18,8 @@ pub async fn create_section(
     new_section: Json<db::NewSection>,
 ) -> RbResult<Json<db::Section>>
 {
-    Ok(Json(conn
-        .run(move |c| db::sections::create(c, &new_section.into_inner()))
-        .await?))
+    Ok(Json(
+        conn.run(move |c| db::sections::create(c, &new_section.into_inner()))
+            .await?,
+    ))
 }

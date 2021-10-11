@@ -112,4 +112,5 @@ fn rocket() -> _
             routes![admin::create_user, admin::get_user_info],
         )
         .mount("/api/sections", routes![sections::create_section])
+        .mount("/api/posts", routes![posts::get, posts::create])
 }

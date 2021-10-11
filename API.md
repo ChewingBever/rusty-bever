@@ -16,9 +16,9 @@ This file describes the API that the software adheres to. All routes are defined
 * GET `/posts?<offset>&<limit>` - get list of posts from the default feed given offset & limit
 * GET `/posts?<section_id_or_shortname>&<offset>&<limit>` - get list of posts of a specific section
 * (A) POST `/posts` - create a new post
-* GET `/posts/<id_or_shortname>` - get a specific post
-* (A) DELETE `/posts/<id_or_shortname>` - delete a post
-* (A) PATCH `/posts/<id_or_shortname>` - patch a post
+* GET `/posts/<id>` - get a specific post
+* (A) DELETE `/posts/<id>` - delete a post
+* (A) PATCH `/posts/<id>` - patch a post
 
 ## Sections
 

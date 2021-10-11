@@ -1,8 +1,8 @@
 //! Handles refresh token-related database operations.
 
 use diesel::{insert_into, prelude::*, Insertable, PgConnection, Queryable};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use serde::{Serialize, Deserialize};
 
 use crate::{
     errors::{RbError, RbResult},
@@ -56,7 +56,11 @@ pub fn create(conn: &PgConnection, new_token: &NewRefreshToken) -> RbResult<Refr
     // TODO check for conflict?
 }
 
-pub fn update(conn: &PgConnection, token_: &[u8], patch_token: &PatchRefreshToken) -> RbResult<RefreshToken>
+pub fn update(
+    conn: &PgConnection,
+    token_: &[u8],
+    patch_token: &PatchRefreshToken,
+) -> RbResult<RefreshToken>
 {
     Ok(diesel::update(refresh_tokens.filter(token.eq(token_)))
         .set(patch_token)

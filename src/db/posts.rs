@@ -44,7 +44,7 @@ pub fn get(conn: &PgConnection, offset_: u32, limit_: u32) -> RbResult<Vec<Post>
     Ok(posts
         .offset(offset_.into())
         .limit(limit_.into())
-        .load::<Post>(conn)
+        .load(conn)
         .map_err(|_| RbError::DbError("Couldn't query posts."))?)
 }
 
