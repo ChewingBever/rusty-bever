@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    errors::{RbError, RbResult, RbOption},
+    errors::{RbError, RbOption, RbResult},
     schema::{posts, posts::dsl::*},
 };
 

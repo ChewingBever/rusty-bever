@@ -12,16 +12,14 @@ use figment::{
     providers::{Env, Format, Yaml},
     Figment,
 };
+#[cfg(any(feature = "web", feature = "docs"))]
+use rocket::fs;
 use rocket::{
     fairing::AdHoc,
     http::Status,
     serde::json::{json, Value},
     Build, Orbit, Request, Rocket,
 };
-
-#[cfg(any(feature = "web", feature="docs"))]
-use rocket::fs;
-
 use rocket_sync_db_pools::database;
 use serde::{Deserialize, Serialize};
 
@@ -98,6 +96,9 @@ fn rocket() -> _
         .merge(Yaml::file("Rb.yaml").nested())
         .merge(Env::prefixed("RB_").global());
 
+    // This mut is necessary when the "docs" or "web" feature is enabled, as these further modify
+    // the instance variable
+    #[allow(unused_mut)]
     let mut instance = rocket::custom(figment)
         .attach(RbDbConn::fairing())
         .attach(AdHoc::try_on_ignite(
@@ -121,12 +122,24 @@ fn rocket() -> _
     // It's weird that this is allowed, but the line on its own isn't
     #[cfg(feature = "web")]
     {
-        instance = instance.mount("/", fs::FileServer::new("/var/www/html/web", fs::Options::Index | fs::Options::NormalizeDirs));
+        instance = instance.mount(
+            "/",
+            fs::FileServer::new(
+                "/var/www/html/web",
+                fs::Options::Index | fs::Options::NormalizeDirs,
+            ),
+        );
     }
 
     #[cfg(feature = "docs")]
     {
-        instance = instance.mount("/docs", fs::FileServer::new("/var/www/html/docs", fs::Options::Index | fs::Options::NormalizeDirs));
+        instance = instance.mount(
+            "/docs",
+            fs::FileServer::new(
+                "/var/www/html/docs",
+                fs::Options::Index | fs::Options::NormalizeDirs,
+            ),
+        );
     }
 
     instance
