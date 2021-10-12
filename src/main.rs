@@ -18,6 +18,10 @@ use rocket::{
     serde::json::{json, Value},
     Build, Orbit, Request, Rocket,
 };
+
+#[cfg(any(feature = "web", feature="docs"))]
+use rocket::fs;
+
 use rocket_sync_db_pools::database;
 use serde::{Deserialize, Serialize};
 
@@ -94,7 +98,7 @@ fn rocket() -> _
         .merge(Yaml::file("Rb.yaml").nested())
         .merge(Env::prefixed("RB_").global());
 
-    rocket::custom(figment)
+    let mut instance = rocket::custom(figment)
         .attach(RbDbConn::fairing())
         .attach(AdHoc::try_on_ignite(
             "Run database migrations",
@@ -112,5 +116,18 @@ fn rocket() -> _
             routes![admin::create_user, admin::get_user_info],
         )
         .mount("/api/sections", routes![sections::create_section])
-        .mount("/api/posts", routes![posts::get, posts::create])
+        .mount("/api/posts", routes![posts::get, posts::create]);
+
+    // It's weird that this is allowed, but the line on its own isn't
+    #[cfg(feature = "web")]
+    {
+        instance = instance.mount("/", fs::FileServer::new("/var/www/html/web", fs::Options::Index | fs::Options::NormalizeDirs));
+    }
+
+    #[cfg(feature = "docs")]
+    {
+        instance = instance.mount("/docs", fs::FileServer::new("/var/www/html/docs", fs::Options::Index | fs::Options::NormalizeDirs));
+    }
+
+    instance
 }
