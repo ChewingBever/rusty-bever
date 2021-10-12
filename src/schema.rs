@@ -21,6 +21,7 @@ table! {
     sections (id) {
         id -> Uuid,
         title -> Varchar,
+        shortname -> Varchar,
         description -> Nullable<Text>,
         is_default -> Bool,
         has_titles -> Bool,
@@ -40,4 +41,9 @@ table! {
 joinable!(posts -> sections (section_id));
 joinable!(refresh_tokens -> users (user_id));
 
-allow_tables_to_appear_in_same_query!(posts, refresh_tokens, sections, users,);
+allow_tables_to_appear_in_same_query!(
+    posts,
+    refresh_tokens,
+    sections,
+    users,
+);

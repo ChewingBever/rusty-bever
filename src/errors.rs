@@ -87,4 +87,8 @@ impl<'r> Responder<'r, 'static> for RbError
     }
 }
 
+/// Type alias for results that can return an RbError
 pub type RbResult<T> = std::result::Result<T, RbError>;
+
+/// Type alias for optional results that can fail & return an RbError
+pub type RbOption<T> = RbResult<Option<T>>;

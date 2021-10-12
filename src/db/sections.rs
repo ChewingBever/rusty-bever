@@ -12,6 +12,7 @@ pub struct Section
 {
     pub id: Uuid,
     pub title: String,
+    pub shortname: String,
     pub description: Option<String>,
     pub is_default: bool,
     pub has_titles: bool,
@@ -23,6 +24,7 @@ pub struct Section
 pub struct NewSection
 {
     title: String,
+    pub shortname: String,
     description: Option<String>,
     is_default: Option<bool>,
     has_titles: Option<bool>,
@@ -34,6 +36,7 @@ pub struct NewSection
 pub struct PatchSection
 {
     title: Option<String>,
+    shortname: Option<String>,
     description: Option<String>,
     is_default: Option<bool>,
     has_titles: Option<bool>,

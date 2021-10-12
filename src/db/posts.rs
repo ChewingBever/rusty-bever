@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    errors::{RbError, RbResult},
+    errors::{RbError, RbResult, RbOption},
     schema::{posts, posts::dsl::*},
 };
 
@@ -46,6 +46,15 @@ pub fn get(conn: &PgConnection, offset_: u32, limit_: u32) -> RbResult<Vec<Post>
         .limit(limit_.into())
         .load(conn)
         .map_err(|_| RbError::DbError("Couldn't query posts."))?)
+}
+
+pub fn find(conn: &PgConnection, id_: &Uuid) -> RbOption<Post>
+{
+    match posts.find(id_).first(conn) {
+        Ok(val) => Ok(Some(val)),
+        Err(diesel::NotFound) => Ok(None),
+        _ => Err(RbError::DbError("Couldn't find post.")),
+    }
 }
 
 pub fn create(conn: &PgConnection, new_post: &NewPost) -> RbResult<Post>

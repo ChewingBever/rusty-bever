@@ -1,6 +1,6 @@
 use rocket::serde::json::Json;
 
-use crate::{db, errors::RbResult, guards::Admin, RbDbConn};
+use crate::{db, errors::RbResult, errors::RbOption, guards::Admin, RbDbConn};
 
 #[get("/?<offset>&<limit>")]
 pub async fn get(conn: RbDbConn, offset: u32, limit: u32) -> RbResult<Json<Vec<db::Post>>>
@@ -21,6 +21,12 @@ pub async fn create(
         conn.run(move |c| db::posts::create(c, &new_post.into_inner()))
             .await?,
     ))
+}
+
+#[get("/<id>")]
+pub async fn find(conn: RbDbConn, id: uuid::Uuid) -> RbOption<Json<db::Post>>
+{
+    Ok(conn.run(move |c| db::posts::find(c, &id)).await?.and_then(|p| Some(Json(p))))
 }
 
 #[patch("/<id>", data = "<patch_post>")]
