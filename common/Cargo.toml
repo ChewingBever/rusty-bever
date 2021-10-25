@@ -1,0 +1,49 @@
+[package]
+name = "rb"
+version = "0.1.0"
+authors = ["Jef Roosens <roosensjef@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "rb"
+path = "src/lib.rs"
+
+# [features]
+# web = []
+# docs = []
+# static = ["web", "docs"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Backend web framework
+rocket = { version = "0.5.0-rc.1", features = [ "json", "uuid" ] }
+# Used to provide Rocket routes with database connections
+rocket_sync_db_pools = { version = "0.1.0-rc.1", default_features = false, features = [ "diesel_postgres_pool" ] }
+# Used to (de)serialize JSON
+serde = { version = "1.0.127", features = [ "derive" ] }
+# ORM
+diesel = { version = "1.4.7", features = ["postgres", "uuidv07", "chrono"] }
+diesel_migrations = "1.4.0"
+# To properly compile libpq statically
+openssl = "0.10.36"
+# For password hashing & verification
+rust-argon2 = "0.8.3"
+rand = "0.8.4"
+uuid = { version = "0.8.2", features = ["serde"] }
+# Authentification
+jwt = "0.14.0"
+hmac = "*"
+sha2 = "*"
+# Timestamps for JWT tokens
+chrono = { version = "*", features = [ "serde" ] }
+# Encoding of refresh tokens
+base64 = "0.13.0"
+# Reading in configuration files
+figment = { version = "*", features = [ "yaml" ] }
+mimalloc = { version = "0.1.26", default_features = false }
+
+# [profile.release]
+# lto = "fat"
+# panic = "abort"
+# codegen-units = 1

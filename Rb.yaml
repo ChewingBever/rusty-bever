@@ -40,4 +40,4 @@ release:
 
   databases:
     postgres_rb:
-      url: "postgres://rb:rb@localhost:5432/rb"
+      url: "postgres://rb:rb@db:5432/rb"

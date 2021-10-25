@@ -1,3 +1,4 @@
+# syntax = docker/dockerfile:1.2
 # Build frontend files
 FROM node:16 AS fbuilder
 
@@ -22,7 +23,8 @@ RUN apk update && \
         postgresql \
         postgresql-dev \
         openssl-dev \
-        build-base
+        build-base \
+        curl bash
 
 WORKDIR /usr/src/app
 
@@ -32,7 +34,12 @@ COPY src/ ./src
 COPY migrations/ ./migrations
 COPY Cargo.toml Cargo.lock ./
 
-RUN cargo build --release && \
+RUN \
+    --mount=type=cache,target=/usr/src/app/out \
+    --mount=type=cache,target=/root/.cargo \
+    cargo build --release && \
+    mkdir bin && \
+    cp out/target/release/rbd bin && \
     cargo doc --no-deps
 
 # Build dumb-init
@@ -40,17 +47,19 @@ RUN curl -sSL "https://github.com/Yelp/dumb-init/archive/refs/tags/v$DI_VER.tar.
     tar -xzf - && \
     cd "dumb-init-$DI_VER" && \
     make build && \
-    mv dumb-init ..
+    mv dumb-init ../bin
 
 
 FROM alpine:3.14.2
 
-RUN mkdir -p /var/www/html
+RUN apk add --no-cache openssl libpq postgresql-dev && \
+    mkdir -p /var/www/html
 
 COPY --from=fbuilder /usr/src/app/dist /var/www/html/site
-COPY --from=builder /usr/src/app/out/target/doc /var/www/html/doc
-COPY --from=builder /usr/src/app/out/target/release/rbd /usr/bin/rbd
-COPY --from=builder /usr/src/app/dumb-init /usr/bin/dumb-init
+# COPY --from=builder /usr/src/app/out/target/doc /var/www/html/doc
+COPY --from=builder /usr/src/app/bin/* /usr/bin/
+
+WORKDIR /
 
 ENTRYPOINT [ "dumb-init", "--" ]
 CMD [ "/usr/bin/rbd" ]
